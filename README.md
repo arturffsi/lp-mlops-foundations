@@ -5,7 +5,7 @@
 - Enable both teams to collaborate effectively across the full ML lifecycle.  
 - Gain hands-on experience with MLOps tools and workflows, both locally and on AWS SageMaker with Redshift.  
 - Remain model-agnostic: participants can choose their preferred ML models, applying best practices consistently.  
-- Achieve **MLOps Level 2 maturity** (according to Google’s classification), where CI/CD automation supports reliable and scalable ML pipelines.  
+- Achieve **MLOps maturity**, where CI/CD automation supports reliable and scalable ML pipelines.  
 
 ---
 
@@ -19,7 +19,7 @@
 - **Setup**:  
   - Python 3.9+ environment (conda or venv recommended)  
   - Jupyter Notebook / JupyterLab installed  
-  - Recommended packages: `pandas`, `scikit-learn`, `mlflow`, `boto3`, `pytest`, `sagemaker`  
+  - Recommended packages: `pandas`, `scikit-learn`, `mlflow`, `boto3`, `pytest`, `sagemaker`
 
 ---
 
