@@ -37,7 +37,7 @@ In short: **MLOps exists to make ML systems reliable, scalable, and sustainable 
 
 ---
 
-## 🏁 ZAP’s Target: MLOps Level 2 Maturity
+## 🏁 ZAP’s Target: MLOps Maturity
 After completing this LP, ZAP aims to reach **MLOps Level 2 maturity** (as defined by Google).  
 
 This means:
@@ -46,7 +46,7 @@ This means:
 - The process includes:
   - Source control for all code and pipeline steps.  
   - Automated building, testing, and packaging of pipeline components.  
-  - Deployment to different environments (dev → pre-prod → prod) with increasing levels of automation.  
+  - Deployment to different environments (dev → prod) with increasing levels of automation.  
   - Model registry and metadata tracking for reproducibility.  
   - Monitoring of deployed services for performance and reliability.  
 - Retraining and redeployment of models can be **triggered automatically** (based on schedule, new data, or business needs).  
@@ -75,7 +75,7 @@ This diagram illustrates the end-to-end automation of ML pipelines, integrating 
 - Understand data quality issues and preprocessing.  
 - Exercises: perform EDA on Redshift sample dataset.  
 
-### Week 2: Pipelines and ETL  
+### Week 2: Model Training 
 - Build ETL workflows with reproducible pipelines.  
 - Discuss importance of consistent naming conventions at ZAP.  
 - Exercises: implement an ETL pipeline feeding Redshift data into a local ML experiment.  
@@ -85,15 +85,15 @@ This diagram illustrates the end-to-end automation of ML pipelines, integrating 
 - Register and version models with MLflow.  
 - Exercises: log training runs and compare metrics.  
 
-### Week 4: CI/CD and Test Coverage  
-- Apply CI/CD principles to ML pipelines.  
-- Differentiate development and production environments.  
-- Exercises: create tests for data preprocessing and model training.  
-
-### Week 5: Deployment on AWS SageMaker  
+### Week 4: Deployment on AWS SageMaker  
 - Deploy models as endpoints in SageMaker.  
 - Integrate pipelines for automated deployment.  
 - Exercises: deploy a trained model and test predictions.  
+
+### Week 5: CI/CD and Test Coverage  
+- Apply CI/CD principles to ML pipelines.  
+- Differentiate development and production environments.  
+- Exercises: create tests for data preprocessing and model training.  
 
 ### Week 6: Continuous Monitoring  
 - Monitor data drift, model drift, and system health.  
