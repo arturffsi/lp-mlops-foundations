@@ -1,0 +1,529 @@
+{
+  "idconsumo": {
+    "type": "int32",
+    "min": 70766984.0,
+    "max": 551865964.0
+  },
+  "id_contaservico": {
+    "type": "int32",
+    "min": 68.0,
+    "max": 5023516.0
+  },
+  "codigocontaservico": {
+    "type": "int64",
+    "min": 100000670101.0,
+    "max": 251773510101.0
+  },
+  "idconta": {
+    "type": "int32",
+    "min": 67.0,
+    "max": 4992739.0
+  },
+  "iddim_date_inicio": {
+    "type": "datetime64[us]",
+    "min": "2017-12-22 00:00:00",
+    "max": "2025-09-29 00:00:00"
+  },
+  "iddim_date_fim": {
+    "type": "datetime64[us]",
+    "min": "2024-01-01 00:00:00",
+    "max": "2025-09-29 00:00:00"
+  },
+  "id_produto_actual": {
+    "type": "int32",
+    "min": 18.0,
+    "max": 24.0
+  },
+  "tipo_produto_actual": {
+    "type": "object",
+    "categories": [
+      "tafacil7",
+      "normal",
+      "tafacil"
+    ]
+  },
+  "tipo_subscricao": {
+    "type": "int16",
+    "min": 2.0,
+    "max": 7.0
+  },
+  "tipo_stb": {
+    "type": "object",
+    "categories": [
+      "HD",
+      "DVR",
+      "SD"
+    ]
+  },
+  "n_dias_subscricao": {
+    "type": "int32",
+    "min": 1.0,
+    "max": 2341.0
+  },
+  "n_dias_expirado": {
+    "type": "int32",
+    "min": -5.0,
+    "max": 0.0
+  },
+  "contract_number": {
+    "type": "int64",
+    "min": 0.0,
+    "max": 132.0
+  },
+  "contract_len_days": {
+    "type": "int32",
+    "min": 0.0,
+    "max": 2340.0
+  },
+  "tenure_days": {
+    "type": "int32",
+    "min": 0.0,
+    "max": 4072.0
+  },
+  "gap_since_prev_expiry": {
+    "type": "Int32",
+    "min": 0.0,
+    "max": 592.0
+  },
+  "mean_len_prev": {
+    "type": "Int64",
+    "min": 1.0,
+    "max": 2516.0
+  },
+  "std_len_prev": {
+    "type": "float64",
+    "min": 0.0,
+    "max": 765.4347348620478
+  },
+  "n_prev_contracts": {
+    "type": "int64",
+    "min": 0.0,
+    "max": 132.0
+  },
+  "expiry_month": {
+    "type": "int32",
+    "min": 1.0,
+    "max": 11.0
+  },
+  "expiry_dow": {
+    "type": "int32",
+    "min": 0.0,
+    "max": 6.0
+  },
+  "tenure_bucket": {
+    "type": "object",
+    "categories": [
+      ">1 yr",
+      "6\u201312 mo",
+      "<6 mo"
+    ]
+  },
+  "churn": {
+    "type": "int16",
+    "min": 0.0,
+    "max": 1.0
+  },
+  "past_churns": {
+    "type": "int16",
+    "min": 0.0,
+    "max": 45.0
+  },
+  "iddim_cliente": {
+    "type": "Int32",
+    "min": -100.0,
+    "max": 6304397.0
+  },
+  "idcliente": {
+    "type": "Int32",
+    "min": -1.0,
+    "max": 3758785.0
+  },
+  "codigocliente": {
+    "type": "float64",
+    "min": -100.0,
+    "max": 25182879.0
+  },
+  "provincia": {
+    "type": "object",
+    "categories": [
+      "Luanda",
+      "Hu\u00edla",
+      "Cabinda",
+      "Namibe",
+      "Benguela",
+      "Bengo",
+      "Huambo",
+      "Malange",
+      "Kwanza-Sul",
+      "Kwanza-Norte",
+      "Cunene",
+      "Moxico",
+      "U\u00edge",
+      "Lunda-Sul",
+      "Cuando Cubango",
+      "Bi\u00e9",
+      "Moxico Leste",
+      "Lunda-Norte",
+      "Zaire",
+      "NA",
+      "Cubango",
+      "Mo\u00e7ambique",
+      "Icolo e Bengo"
+    ]
+  },
+  "municipio": {
+    "type": "object",
+    "categories": [
+      "Kilamba Kiaxi Sul",
+      "Lubango",
+      "Cabinda",
+      "Buco-Zau",
+      "Namibe",
+      "Cazenga",
+      "Lobito",
+      "Viana",
+      "Dande",
+      "Rangel",
+      "Kilamba Kiaxi-Norte",
+      "Huambo",
+      "Samba",
+      "Malange",
+      "Sambizanga",
+      "Maianga",
+      "Kunda-i\u00e1-Baze",
+      "Konda",
+      "Katchiungo",
+      "Ba\u00eda Farta",
+      "Cacuaco",
+      "Amboim",
+      "Golungo Alto",
+      "Kwanyama",
+      "Luena",
+      "Uige",
+      "Saurimo",
+      "Catumbela",
+      "Bengo",
+      "Benguela",
+      "MENONGUE",
+      "Cuemba (Neves Ferrei",
+      "Cubal",
+      "\u00cdcolo",
+      "Luau",
+      "Zango",
+      "Chitato",
+      "Soyo",
+      "Kuito  (Silva Porto)",
+      "Sumbe",
+      "Kambambe",
+      "Andulo",
+      "Talatona",
+      "Ingombota",
+      "Chibia",
+      "Ukuma",
+      "M\u2019Banza Kongo",
+      "Songo",
+      "Maquela do Zombo",
+      "Libolo",
+      "Ca\u00e1la",
+      "Negage",
+      "Lukapa",
+      "Bailundo",
+      "Matala",
+      "Banga",
+      "Tomboco",
+      "Luxazes",
+      "Dembos",
+      "Quilengues",
+      "Cela",
+      "Milunga",
+      "Kibala",
+      "Kambulo",
+      "Belas",
+      "Moxico",
+      "Belize",
+      "Lukala",
+      "Kazengo",
+      "Kissama",
+      "Kamanongue",
+      "Ongiva",
+      "Camacupa",
+      "Ekunha",
+      "Balombo",
+      "N\u2019zeto",
+      "Dundo",
+      "Kuanavale",
+      "Kilamba Kiaxi",
+      "Bungo",
+      "Quinbele",
+      "Kapenda",
+      "Kassongue",
+      "Alto Cauale",
+      "Chitembo",
+      "Damba",
+      "T\u00f4mbua",
+      "Bula-Antuba",
+      "Kamulemba",
+      "Bembe",
+      "Ambuila",
+      "Dala",
+      "Ambaca",
+      "Longonjo",
+      "Caxito",
+      "kahama",
+      "Kakuso",
+      "Kiculungo",
+      "Bolongongo",
+      "Kiuaba-zoji",
+      "Gambos",
+      "Kuimba",
+      "Sanza Pombo",
+      "Humpata",
+      "Mussende",
+      "Alto Zambeze",
+      "Kaungula",
+      "Caconda",
+      "Nambuangongo",
+      "Lubalo  LUKALA",
+      "Ombadja",
+      "Namakunde",
+      "Bundas",
+      "Seles",
+      "Macocola",
+      "Kuango",
+      "Ebo",
+      "NA",
+      "Mukonda",
+      "Ganda",
+      "Kalandula",
+      "Cacongo",
+      "Kakolo",
+      "Chiange",
+      "Jamba (Mineira)",
+      "Icolo e Bengo",
+      "Bibala",
+      "Ambriz",
+      "N\u00f3qui",
+      "Quitexe",
+      "Caluquembe",
+      "Londuimbali",
+      "Lukano",
+      "Bocoio",
+      "Cunhinga",
+      "Kahombo",
+      "Porto Amboim",
+      "Camacuio",
+      "Kilenda",
+      "Luquembo",
+      "Nharea",
+      "Dirico",
+      "X\u00e1 \u2013 Muteba",
+      "Chongor\u00f3i",
+      "Chicomba",
+      "Muxima",
+      "Chinguar",
+      "L\u00e9ua",
+      "Mukari",
+      "Camama",
+      "Mungo",
+      "Buengas",
+      "Samba Caj\u00fa",
+      "Mucaba",
+      "Kangandala",
+      "Kirima",
+      "Dondo",
+      "Kuvango",
+      "Caimbambo",
+      "Kakulama-Mukari",
+      "Kuroka",
+      "Puri",
+      "Kela",
+      "Quipungo",
+      "Menongue",
+      "Marimba",
+      "Kambundi-Katembo",
+      "Chipindo",
+      "Tchicala Tcholohanga",
+      "Virei",
+      "Massango",
+      "Lumbala-Nguimbo",
+      "Lumege-Kameia",
+      "Ngomguembo",
+      "Santa Cruz",
+      "Catabola",
+      "Mavinga",
+      "Cuangar",
+      "Pango-Aluqu\u00e9m",
+      "Kuito",
+      "Bula Atumba",
+      "Zombo",
+      "Tchindjendje",
+      "Kalai",
+      "Nancova",
+      "Dange",
+      "Geral",
+      "Rivungo",
+      "Calumbo",
+      "Camanongue",
+      "Lumbala Nguimbo"
+    ]
+  },
+  "age": {
+    "type": "float64",
+    "min": 1.75,
+    "max": 124.86
+  },
+  "age_missing": {
+    "type": "Int16",
+    "min": 0.0,
+    "max": 1.0
+  },
+  "sexo": {
+    "type": "object",
+    "categories": [
+      "M",
+      "F",
+      "I"
+    ]
+  },
+  "estado_civil": {
+    "type": "object",
+    "categories": [
+      "indeterminado",
+      "solteiro",
+      "casado",
+      "divorciado",
+      "viuvo",
+      "separado"
+    ]
+  },
+  "account_age_d_cliente": {
+    "type": "Int32",
+    "min": -30.0,
+    "max": 20330.0
+  },
+  "days_since_last_update_cliente": {
+    "type": "Int32",
+    "min": -31.0,
+    "max": 3239.0
+  },
+  "iddim_conta": {
+    "type": "Int32",
+    "min": 114.0,
+    "max": 8087051.0
+  },
+  "codigoconta": {
+    "type": "float64",
+    "min": 1000006701.0,
+    "max": 2518287901.0
+  },
+  "idgrupo_dim_contadimensao": {
+    "type": "Int32",
+    "min": -1.0,
+    "max": 2795.0
+  },
+  "tipoconta": {
+    "type": "object",
+    "categories": [
+      "residencial",
+      "empresarial",
+      "agente"
+    ]
+  },
+  "tecnologia": {
+    "type": "object",
+    "categories": [
+      "DTH",
+      "Nenhuma"
+    ]
+  },
+  "account_age_d_conta": {
+    "type": "Int32",
+    "min": -20.0,
+    "max": 5604.0
+  },
+  "iddim_contaservico_dth": {
+    "type": "Int32",
+    "min": 2377510.0,
+    "max": 10841295.0
+  },
+  "account_age_d_contaservico": {
+    "type": "Int32",
+    "min": -20.0,
+    "max": 5604.0
+  },
+  "n_contacts": {
+    "type": "int64",
+    "min": 0.0,
+    "max": 4.0
+  },
+  "last_contact_ts": {
+    "type": "int64",
+    "min": -9.223372036854776e+18,
+    "max": 1756485985000000.0
+  },
+  "n_successful_contacts": {
+    "type": "int64",
+    "min": 0.0,
+    "max": 4.0
+  },
+  "any_success": {
+    "type": "int16",
+    "min": 0.0,
+    "max": 1.0
+  },
+  "days_since_last_contact": {
+    "type": "Int32",
+    "min": 1.0,
+    "max": 30.0
+  },
+  "was_contacted": {
+    "type": "int16",
+    "min": 0.0,
+    "max": 1.0
+  },
+  "topup_count": {
+    "type": "int64",
+    "min": 0.0,
+    "max": 1878.0
+  },
+  "topup_total_value": {
+    "type": "float64",
+    "min": 0.0,
+    "max": 20783807.91
+  },
+  "topup_avg_value": {
+    "type": "float64",
+    "min": 0.0,
+    "max": 2338947.37
+  },
+  "topup_std_value": {
+    "type": "float64",
+    "min": 0.0,
+    "max": 331279.9658725486
+  },
+  "topup_cv_value": {
+    "type": "float64",
+    "min": 0.0,
+    "max": 28.149469100852016
+  },
+  "topup_days_since_last": {
+    "type": "Int32",
+    "min": 1.0,
+    "max": 90.0
+  },
+  "used_selfcare": {
+    "type": "int32",
+    "min": 0.0,
+    "max": 1.0
+  },
+  "topup_type_nunique": {
+    "type": "int64",
+    "min": 0.0,
+    "max": 16.0
+  },
+  "topup_channel_nunique": {
+    "type": "int64",
+    "min": 0.0,
+    "max": 1.0
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "python": "3.12.12 | packaged by Anaconda, Inc. | (main, Oct 14 2025, 16:12:22) [Clang 17.0.6 ]",
+  "platform": "macOS-26.0.1-arm64-arm-64bit",
+  "timestamp_utc": "20251016T180850Z",
+  "seed": 42,
+  "packages": {
+    "pandas": "2.3.3",
+    "numpy": "2.1.3"
+  }
+}

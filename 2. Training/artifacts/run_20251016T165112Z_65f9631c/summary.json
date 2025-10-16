@@ -1,0 +1,8 @@
+{
+  "timestamp": "20251016T165112Z",
+  "train_rows": 80000,
+  "test_rows": 20000,
+  "features": 58,
+  "train_churn_rate": 0.2967125,
+  "test_churn_rate": 0.2967
+}

@@ -1,0 +1,111 @@
+# Data Configuration
+data:
+  source: "parquet"  # "parquet" or "redshift"
+  parquet_uri: "s3://sagemaker-af-south-1-733246370304/redshift_exports/exports/1m_redshift_sample/"
+  redshift_sql: "SELECT * FROM public.final_feature_snapshot"
+  redshift_kwargs:
+    host: "your-redshift-host"
+    port: 5439
+    dbname: "your-db"
+    user: "your-user"
+    password: "your-password"
+
+# MLflow Configuration
+mlflow:
+  tracking_uri: "arn:aws:sagemaker:af-south-1:733246370304:mlflow-tracking-server/dth-churn-ml"
+  experiment_name: "dth-churn-model"
+
+############################################################## Model Configuration
+
+#model:
+#  target_col: "churn"
+#  n_estimators: 1500
+#  learning_rate: 0.12
+#  depth: 5
+#  l2_leaf_reg: 5.0
+#  use_gpu: false
+#  random_seed: 42
+#  early_stopping_rounds: 200
+
+model:
+  # Problem setup
+  target_col: "churn"
+  loss_function: "Logloss"
+  eval_metric: "PRAUC"
+  custom_metrics: ["AUC","PRAUC","F1","Precision","Recall"]
+
+  # Capacity & schedule (lean)
+  n_estimators: 2500
+  learning_rate: 0.08
+  depth: 6
+  early_stopping_rounds: 300
+
+  # Regularization / imbalance / randomness
+  l2_leaf_reg: 5.0
+  auto_class_weights: "Balanced"
+  bagging_temperature: 0.25
+  rsm: 0.85
+
+  # Memory & speed knobs
+  border_count: 128
+  one_hot_max_size: 4
+  max_ctr_complexity: 2
+  bootstrap_type: "MVS"
+
+  # Runtime
+  use_gpu: false
+  random_seed: 42
+
+############################################################## end of model
+
+# Training Configuration
+training:
+  test_size: 0.2
+  target_recall_threshold: 0.8
+
+# Feature Configuration
+features:
+  id_features:
+    - "idconsumo"
+    - "codigocontaservico" 
+    - "idconta"
+    - "iddim_cliente"
+    - "idcliente"
+    - "codigocliente"
+    - "iddim_conta"
+    - "codigoconta"
+    - "idgrupo_dim_contadimensao"
+    - "iddim_contaservico_dth"
+  
+  datetime_features:
+    - "iddim_date_inicio"
+    - "iddim_date_fim"
+    - "account_age_d_cliente"
+    - "days_since_last_update_cliente"
+  
+  int_features:
+    - "codigocontaservico"
+    - "codigocliente"
+    - "codigoconta"
+    - "id_contaservico"
+    - "idconta"
+    - "n_dias_subscricao"
+    - "n_dias_expirado"
+
+  float_features:
+    - "gap_since_prev_expiry"
+    - "mean_len_prev"
+    - "std_len_prev"
+    - "id_produto_actual"
+    - "tipo_subscricao"
+    - "contract_number"
+    - "contract_len_days"
+    - "tenure_days"
+    - "age"
+    - "topup_total_value"
+    - "topup_avg_value"
+
+# Output Configuration
+output:
+  model_dir: "models"
+  artifacts_dir: "artifacts"

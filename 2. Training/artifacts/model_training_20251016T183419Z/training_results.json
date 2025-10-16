@@ -1,0 +1,24 @@
+{
+  "model": "CatBoost",
+  "timestamp": "20251016T183419Z",
+  "hyperparameters": {
+    "iterations": 500,
+    "learning_rate": 0.08,
+    "depth": 6,
+    "l2_leaf_reg": 5.0
+  },
+  "metrics": {
+    "roc_auc": 0.7660171731159306,
+    "pr_auc": 0.29644771833938643
+  },
+  "threshold": {
+    "default": 0.5,
+    "optimized": 0.25057642706015737,
+    "target_recall": 0.8
+  },
+  "performance_at_threshold": {
+    "precision": 0.20409060919287442,
+    "recall": 0.8,
+    "f1": 0.32521464867706323
+  }
+}
