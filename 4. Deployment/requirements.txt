@@ -1,0 +1,11 @@
+
+# Minimal runtime deps for inference.py (adjust as needed)
+numpy>=1.24.0
+pandas>=1.5.0
+joblib>=1.2.0
+cloudpickle>=2.2.0
+scikit-learn>=1.2.0
+xgboost>=1.7.0
+catboost>=1.2.0
+pyarrow>=10.0.0
+s3fs>=2023.1.0
