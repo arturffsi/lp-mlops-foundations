@@ -1,0 +1,26 @@
+{
+  "source": "parquet",
+  "file_path": "../sample_data_from_redshift/sample.parquet",
+  "extraction_date": "2025-10-17T15:10:00.952638+00:00",
+  "n_rows": 100000,
+  "n_columns": 58,
+  "date_range": {
+    "min": "2017-12-22 00:00:00",
+    "max": "2025-09-29 00:00:00"
+  },
+  "version": "v1.0",
+  "feature_count": {
+    "numeric": 46,
+    "categorical": 9,
+    "datetime": 3
+  },
+  "target_distribution": {
+    "class_0": 70329,
+    "class_1": 29671,
+    "imbalance_ratio": 2.37029422668599
+  },
+  "data_quality": {
+    "missing_values": 297424,
+    "duplicate_rows": 0
+  }
+}
