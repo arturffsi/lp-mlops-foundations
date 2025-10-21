@@ -1,0 +1,97 @@
+# Credentials and secrets
+redshift_config.py
+*.env
+.env
+credentials.json
+secrets.yaml
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# MLOps artifacts
+*.parquet
+*.csv
+*.pkl
+*.joblib
+*.h5
+*.hdf5
+
+# Model artifacts (exclude from git, track in MLflow/S3)
+models/
+checkpoints/
+saved_models/
+
+# Data directories (large files)
+data/
+sample_data/
+datasets/
+
+# Logs
+*.log
+logs/
+mlruns/
+
+# AWS
+.aws/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# EDA outputs
+feature_schema.json
+data_metadata.json
+eda_report.html
