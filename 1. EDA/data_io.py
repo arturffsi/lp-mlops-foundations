@@ -9,19 +9,17 @@ Usage:
     # Load from S3 parquet
     df = load_data(source='parquet', uri='s3://bucket/path/data.parquet')
 
-    # Load from Redshift (IAM auth + UNLOAD to S3)
+    # Load from Redshift (boto3 redshift-data API + UNLOAD to S3)
     df = load_data(
         source='redshift',
         sql='SELECT * FROM dth_churn_ml_inference.inference_features',
         redshift_kwargs={
-            'host': 'your-cluster.region.redshift.amazonaws.com',
-            'database': 'your_database',
-            'user': 'your_user',
-            'cluster_identifier': 'your-cluster',
+            'cluster_id': 'redshift-cluster-dsi',
+            'database': 'prod',
+            'db_user': 'svc_sagemaker',
             'region': 'af-south-1',
-            'iam': True,  # Use IAM authentication
-            'iam_role': 'arn:aws:iam::account:role/RedshiftS3Role',  # For S3 access
-            's3_export_path': 's3://your-bucket/tmp/eda_export/'  # Temp S3 location
+            'iam_role': 'arn:aws:iam::733246370304:role/RedshiftIAMAuthRole',
+            's3_export_prefix': 's3://bucket/path/export/'
         },
         limit=100000
     )
@@ -52,18 +50,14 @@ def load_data(
     sql : str, optional
         SQL query for Redshift (required when source='redshift')
     redshift_kwargs : dict, optional
-        Connection parameters for Redshift:
-        - host: Redshift endpoint
-        - database: database name
-        - user: db user (for IAM auth)
-        - cluster_identifier: cluster ID (for IAM auth)
-        - region: AWS region (default: 'af-south-1')
-        - iam: True for IAM auth, False for password auth
-        - iam_role: ARN of IAM role for S3 access (required for redshift)
-        - s3_export_path: S3 path for UNLOAD (required for redshift)
+        Connection parameters for Redshift (boto3 redshift-data API):
+        - cluster_id: Redshift cluster identifier (e.g., 'redshift-cluster-dsi')
+        - database: database name (e.g., 'prod')
+        - db_user: database user for IAM auth (e.g., 'svc_sagemaker')
+        - region: AWS region (e.g., 'af-south-1')
+        - iam_role: ARN of IAM role for S3 access (required for UNLOAD)
+        - s3_export_prefix: S3 path prefix for UNLOAD (e.g., 's3://bucket/path/')
         - cleanup_s3: Whether to delete S3 files after loading (default: False)
-        - password: required if iam=False
-        - port: default 5439
     limit : int, optional
         Limit number of rows (applies to both parquet and redshift)
     sample_ratio : float, optional
@@ -142,13 +136,13 @@ def _load_from_redshift(
     limit: Optional[int] = None
 ) -> pd.DataFrame:
     """
-    Load data from Redshift using UNLOAD to S3 (matches production pattern)
+    Load data from Redshift using UNLOAD to S3 (matches test_redshift_connection.ipynb pattern)
 
-    This mimics the production export process:
-    1. Connect to Redshift with IAM auth
+    This follows the EXACT pattern from test_redshift_connection.ipynb:
+    1. Use boto3 redshift-data API (no direct connection needed)
     2. Execute UNLOAD command to export data to S3 as Parquet
-    3. Read Parquet files from S3
-    4. Optionally clean up temp files
+    3. Poll for query completion
+    4. Read Parquet files from S3 using awswrangler
     """
 
     if not sql:
@@ -157,56 +151,60 @@ def _load_from_redshift(
     if not redshift_kwargs:
         raise ValueError("redshift_kwargs must be provided for redshift source")
 
-    # Validate required parameters
-    required_params = ['host', 'database', 'user', 'cluster_identifier', 'iam_role', 's3_export_path']
+    # Validate required parameters (matching test notebook)
+    required_params = ['cluster_id', 'database', 'db_user', 'region', 'iam_role', 's3_export_prefix']
     missing = [p for p in required_params if p not in redshift_kwargs]
     if missing:
         raise ValueError(f"Missing required redshift_kwargs: {', '.join(missing)}")
 
     # Import dependencies
     try:
-        import redshift_connector
+        import boto3
+        import time
     except ImportError:
         raise ImportError(
-            "redshift_connector is required for Redshift access. "
-            "Install with: pip install redshift-connector"
+            "boto3 is required for Redshift access. "
+            "Install with: pip install boto3"
         )
 
     try:
-        import s3fs
+        import awswrangler as wr
     except ImportError:
         raise ImportError(
-            "s3fs is required for S3 access. Install with: pip install s3fs"
+            "awswrangler is required for S3 access. Install with: pip install awswrangler"
         )
 
-    # Apply limit to SQL if requested (use ROW_NUMBER for UNLOAD compatibility)
-    if limit is not None:
-        # UNLOAD doesn't support LIMIT, so use ROW_NUMBER window function
-        sql = f"SELECT * FROM ({sql.rstrip(';')}) AS subquery WHERE ROW_NUMBER() OVER (ORDER BY 1) <= {limit}"
-        print(f"  ℹ️  Limited query to {limit:,} rows using ROW_NUMBER()")
-
     print("=" * 80)
-    print("📊 Redshift UNLOAD Export (Production Pattern)")
+    print("📊 Redshift UNLOAD Export (boto3 redshift-data API)")
     print("=" * 80)
-    print(f"  Host: {redshift_kwargs['host']}")
+    print(f"  Cluster ID: {redshift_kwargs['cluster_id']}")
     print(f"  Database: {redshift_kwargs['database']}")
-    print(f"  User: {redshift_kwargs['user']}")
-    print(f"  Auth: {'IAM' if redshift_kwargs.get('iam', True) else 'Password'}")
-    print(f"  S3 Export Path: {redshift_kwargs['s3_export_path']}")
+    print(f"  User: {redshift_kwargs['db_user']}")
+    print(f"  Region: {redshift_kwargs['region']}")
+    print(f"  S3 Export Prefix: {redshift_kwargs['s3_export_prefix']}")
 
-    # Build UNLOAD SQL (exactly like production)
-    region = redshift_kwargs.get('region', 'af-south-1')
-    s3_export_path = redshift_kwargs['s3_export_path'].rstrip('/')
+    # Build UNLOAD SQL (exactly like test notebook)
+    region = redshift_kwargs['region']
+    s3_export_prefix = redshift_kwargs['s3_export_prefix'].rstrip('/')
     iam_role = redshift_kwargs['iam_role']
 
+    # Clean up SQL query (remove trailing semicolons and whitespace)
+    inner_sql = sql.rstrip().rstrip(';').rstrip()
+
+    # NOTE: Redshift UNLOAD does NOT support LIMIT clause inside the query
+    # We'll apply the limit after loading from S3 instead
+    if limit is not None:
+        print(f"  ℹ️  Will limit to {limit:,} rows after loading (UNLOAD doesn't support LIMIT)")
+
     unload_sql = f"""
-UNLOAD ('{sql}')
-TO '{s3_export_path}/'
+UNLOAD ('
+  {inner_sql}
+')
+TO '{s3_export_prefix}/'
 IAM_ROLE '{iam_role}'
 FORMAT AS PARQUET
 ALLOWOVERWRITE
 PARALLEL ON
-MANIFEST
 REGION '{region}';
 """
 
@@ -214,66 +212,67 @@ REGION '{region}';
     print(unload_sql)
     print("=" * 80)
 
-    # Prepare connection parameters (IAM auth only for production pattern)
-    conn_params = {
-        'host': redshift_kwargs['host'],
-        'database': redshift_kwargs['database'],
-        'ssl': True,
-        'iam': True,
-        'db_user': redshift_kwargs['user'],
-        'cluster_identifier': redshift_kwargs['cluster_identifier'],
-        'region': region
-    }
-
     try:
-        # Connect to Redshift
-        print("\n🔌 Connecting to Redshift with IAM...")
-        conn = redshift_connector.connect(**conn_params)
-        print("  ✓ Connected successfully")
+        # Execute query using boto3 redshift-data API (same as test notebook)
+        print("\n🚀 Executing UNLOAD via redshift-data API...")
+        client = boto3.client("redshift-data", region_name=region)
 
-        # Execute UNLOAD
-        print("\n🚀 Executing UNLOAD command...")
-        cursor = conn.cursor()
-        cursor.execute(unload_sql)
-        conn.commit()
-        cursor.close()
-        conn.close()
+        resp = client.execute_statement(
+            ClusterIdentifier=redshift_kwargs['cluster_id'],
+            Database=redshift_kwargs['database'],
+            DbUser=redshift_kwargs['db_user'],
+            Sql=unload_sql
+        )
+
+        stmt_id = resp["Id"]
+        print(f"  Statement ID: {stmt_id}")
+
+        # Poll for completion (same as test notebook)
+        print("\n⏳ Waiting for UNLOAD to complete...")
+        while True:
+            desc = client.describe_statement(Id=stmt_id)
+            status = desc["Status"]
+            print(f"  Status: {status}")
+
+            if status in ["FINISHED", "FAILED", "ABORTED"]:
+                break
+            time.sleep(2)
+
+        if status != "FINISHED":
+            error_msg = desc.get("Error", "Unknown error")
+            raise RuntimeError(f"UNLOAD failed with status {status}: {error_msg}")
+
         print("  ✓ UNLOAD completed successfully")
 
-        # Read parquet files from S3
-        print(f"\n📂 Reading Parquet files from S3: {s3_export_path}/")
-        fs = s3fs.S3FileSystem()
+        # Read parquet files from S3 using awswrangler (same as test notebook)
+        print(f"\n📂 Reading Parquet files from S3: {s3_export_prefix}/")
 
-        # Remove s3:// prefix for s3fs
-        s3_path_clean = s3_export_path.replace('s3://', '')
+        files = wr.s3.list_objects(s3_export_prefix)
+        print(f"  Found {len(files)} objects")
 
-        # Find all parquet files
-        parquet_files = fs.glob(f"{s3_path_clean}/*.parquet")
+        if len(files) == 0:
+            raise RuntimeError(f"No files found at {s3_export_prefix}/")
 
-        if not parquet_files:
-            raise RuntimeError(f"No parquet files found at {s3_export_path}/")
+        # Show first few files
+        for path in files[:5]:
+            print(f"    {path}")
+        if len(files) > 5:
+            print(f"    ... and {len(files) - 5} more")
 
-        print(f"  Found {len(parquet_files)} parquet file(s)")
+        # Read all parquet files as dataset
+        df = wr.s3.read_parquet(s3_export_prefix, dataset=True)
 
-        # Read all parquet files
-        dfs = []
-        for i, path in enumerate(parquet_files, 1):
-            print(f"  Reading file {i}/{len(parquet_files)}: {path.split('/')[-1]}")
-            dfs.append(pd.read_parquet(f"s3://{path}", engine="pyarrow"))
+        print(f"\n  ✓ Loaded {len(df):,} rows × {len(df.columns)} columns from S3")
 
-        # Concatenate all dataframes
-        df = pd.concat(dfs, ignore_index=True)
-        print(f"\n  ✓ Loaded {len(df):,} rows × {len(df.columns)} columns")
+        # Apply limit if requested (after loading, since UNLOAD doesn't support LIMIT)
+        if limit is not None and len(df) > limit:
+            df = df.head(limit)
+            print(f"  ✓ Limited to {limit:,} rows")
 
         # Cleanup S3 files if requested
         if redshift_kwargs.get('cleanup_s3', False):
             print(f"\n🧹 Cleaning up S3 files...")
-            for path in parquet_files:
-                fs.rm(f"s3://{path}")
-            # Also remove manifest file if it exists
-            manifest_file = f"{s3_path_clean}/manifest"
-            if fs.exists(manifest_file):
-                fs.rm(manifest_file)
+            wr.s3.delete_objects(s3_export_prefix)
             print("  ✓ Cleanup complete")
 
         print("\n" + "=" * 80)
@@ -347,20 +346,18 @@ if __name__ == "__main__":
     print(")")
 
     print("\n" + "=" * 60)
-    print("Example 2: Load from Redshift with UNLOAD (Production Pattern)")
+    print("Example 2: Load from Redshift with UNLOAD (boto3 redshift-data API)")
     print("-" * 60)
     print("df = load_data(")
     print("    source='redshift',")
-    print("    sql='SELECT * FROM dth_churn_ml_inference.inference_features',")
+    print("    sql='SELECT * FROM dth_churn_ml_training.training_features',")
     print("    redshift_kwargs={")
-    print("        'host': 'your-cluster.af-south-1.redshift.amazonaws.com',")
-    print("        'database': 'your_database',")
-    print("        'user': 'your_user',")
-    print("        'cluster_identifier': 'your-cluster',")
+    print("        'cluster_id': 'redshift-cluster-dsi',")
+    print("        'database': 'prod',")
+    print("        'db_user': 'svc_sagemaker',")
     print("        'region': 'af-south-1',")
-    print("        'iam': True,")
-    print("        'iam_role': 'arn:aws:iam::123456789012:role/RedshiftS3Role',")
-    print("        's3_export_path': 's3://your-bucket/tmp/eda_export',")
+    print("        'iam_role': 'arn:aws:iam::733246370304:role/RedshiftIAMAuthRole',")
+    print("        's3_export_prefix': 's3://bucket/path/export/',")
     print("        'cleanup_s3': False  # Set to True to delete temp files")
     print("    },")
     print("    limit=100000")
