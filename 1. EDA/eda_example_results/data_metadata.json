@@ -1,0 +1,26 @@
+{
+  "source": "local_parquet",
+  "user": "student",
+  "extraction_date": "2025-10-27T17:01:01.823310+00:00",
+  "n_rows": 103397,
+  "n_columns": 58,
+  "date_range": {
+    "min": "2021-02-08",
+    "max": "2025-05-30"
+  },
+  "version": "v1.0",
+  "feature_count": {
+    "numeric": 46,
+    "categorical": 11,
+    "datetime": 1
+  },
+  "target_distribution": {
+    "class_0": 65469,
+    "class_1": 37928,
+    "imbalance_ratio": 1.726139000210926
+  },
+  "data_quality": {
+    "missing_values": 327574,
+    "duplicate_rows": 0
+  }
+}

@@ -1,0 +1,486 @@
+{
+  "idconsumo": {
+    "type": "numeric",
+    "min": 174575608.0,
+    "max": 514785136.0
+  },
+  "id_contaservico": {
+    "type": "numeric",
+    "min": 430.0,
+    "max": 4895686.0
+  },
+  "codigocontaservico": {
+    "type": "numeric",
+    "min": 100001130201.0,
+    "max": 250892250101.0
+  },
+  "idconta": {
+    "type": "numeric",
+    "min": 420.0,
+    "max": 4863595.0
+  },
+  "iddim_date_inicio": {
+    "type": "categorical",
+    "categories": [
+      "2024-06-15",
+      "2024-01-20",
+      "2024-06-10",
+      "2024-03-02",
+      "2024-04-01",
+      "2024-06-14",
+      "2024-01-25",
+      "2024-01-05",
+      "2025-02-04",
+      "2024-03-21",
+      "2024-04-19",
+      "2024-01-03",
+      "2025-04-19",
+      "2024-07-06",
+      "2024-01-23",
+      "2024-10-04",
+      "2024-01-30",
+      "2025-05-12",
+      "2024-10-30",
+      "2024-07-26",
+      "2025-03-18",
+      "2024-03-30",
+      "2025-01-31",
+      "2024-04-29",
+      "2024-05-09",
+      "2024-01-27",
+      "2024-04-08",
+      "2025-04-10",
+      "2024-07-08",
+      "2025-04-28",
+      "2024-10-26",
+      "2024-07-05",
+      "2024-10-15",
+      "2024-10-14",
+      "2024-05-07",
+      "2024-06-25",
+      "2025-03-19",
+      "2024-07-29",
+      "2024-04-18",
+      "2024-06-29",
+      "2024-05-02",
+      "2024-10-12",
+      "2024-10-05",
+      "2025-05-16",
+      "2025-05-02",
+      "2025-04-24",
+      "2025-03-26",
+      "2024-09-30",
+      "2024-05-31",
+      "2025-04-15"
+    ]
+  },
+  "iddim_date_fim": {
+    "type": "categorical",
+    "categories": [
+      "2024-07-14",
+      "2024-02-22",
+      "2024-07-09",
+      "2024-03-31",
+      "2024-04-30",
+      "2024-06-17",
+      "2024-02-04",
+      "2024-01-11",
+      "2025-03-04",
+      "2024-03-26",
+      "2024-04-25",
+      "2024-01-05",
+      "2025-05-02",
+      "2024-08-02",
+      "2024-02-05",
+      "2024-10-17",
+      "2024-01-31",
+      "2024-10-10",
+      "2025-05-14",
+      "2024-11-05",
+      "2024-07-28",
+      "2025-03-20",
+      "2024-04-28",
+      "2025-02-06",
+      "2024-05-05",
+      "2024-06-07",
+      "2024-02-02",
+      "2024-04-14",
+      "2025-04-13",
+      "2024-07-10",
+      "2025-04-30",
+      "2024-11-01",
+      "2024-07-08",
+      "2024-10-18",
+      "2024-10-16",
+      "2024-05-13",
+      "2024-07-01",
+      "2025-03-25",
+      "2024-07-31",
+      "2024-04-21",
+      "2024-02-01",
+      "2024-11-10",
+      "2024-10-11",
+      "2025-05-18",
+      "2025-05-04",
+      "2025-04-27",
+      "2025-03-27",
+      "2024-10-13",
+      "2024-06-06",
+      "2024-04-24"
+    ]
+  },
+  "id_produto_actual": {
+    "type": "numeric",
+    "min": 18.0,
+    "max": 24.0
+  },
+  "tipo_produto_actual": {
+    "type": "categorical",
+    "categories": [
+      "normal",
+      "tafacil7",
+      "tafacil"
+    ]
+  },
+  "tipo_subscricao": {
+    "type": "numeric",
+    "min": 2.0,
+    "max": 7.0
+  },
+  "tipo_stb": {
+    "type": "categorical",
+    "categories": [
+      "HD",
+      "DVR",
+      "SD"
+    ]
+  },
+  "n_dias_subscricao": {
+    "type": "numeric",
+    "min": 1.0,
+    "max": 1514.0
+  },
+  "n_dias_expirado": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 0.0
+  },
+  "contract_number": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 102.0
+  },
+  "contract_len_days": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 1513.0
+  },
+  "tenure_days": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 1513.0
+  },
+  "gap_since_prev_expiry": {
+    "type": "numeric",
+    "min": 1.0,
+    "max": 472.0
+  },
+  "mean_len_prev": {
+    "type": "numeric",
+    "min": 1.0,
+    "max": 629.0
+  },
+  "std_len_prev": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 450.2498380529044
+  },
+  "n_prev_contracts": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 102.0
+  },
+  "expiry_month": {
+    "type": "numeric",
+    "min": 1.0,
+    "max": 11.0
+  },
+  "expiry_dow": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 6.0
+  },
+  "tenure_bucket": {
+    "type": "categorical",
+    "categories": [
+      "6\u201312 mo",
+      "<6 mo",
+      ">1 yr"
+    ]
+  },
+  "churn": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 1.0
+  },
+  "past_churns": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 36.0
+  },
+  "iddim_cliente": {
+    "type": "numeric",
+    "min": 795055.0,
+    "max": 6291718.0
+  },
+  "idcliente": {
+    "type": "numeric",
+    "min": 113.0,
+    "max": 3746753.0
+  },
+  "codigocliente": {
+    "type": "numeric",
+    "min": 10000113.0,
+    "max": 25171097.0
+  },
+  "provincia": {
+    "type": "categorical",
+    "categories": [
+      "Luanda",
+      "Hu\u00edla",
+      "Malange",
+      "Benguela",
+      "Moxico",
+      "Lunda-Norte",
+      "Bengo",
+      "Namibe",
+      "Cabinda",
+      "Lunda-Sul",
+      "Huambo",
+      "Cunene",
+      "U\u00edge",
+      "Kwanza-Sul",
+      "Kwanza-Norte",
+      "Bi\u00e9",
+      "Zaire",
+      "Cuando Cubango",
+      "Cubango",
+      "Mo\u00e7ambique",
+      "Icolo e Bengo"
+    ]
+  },
+  "municipio": {
+    "type": "categorical",
+    "categories": [
+      "Samba",
+      "Kilamba Kiaxi Sul",
+      "Rangel",
+      "Maianga",
+      "Kuvango",
+      "Malange",
+      "Lubango",
+      "Ingombota",
+      "Benguela",
+      "Cacuaco",
+      "Cazenga",
+      "Luena",
+      "Kilamba Kiaxi-Norte",
+      "Chitato",
+      "Viana",
+      "Caxito",
+      "Namibe",
+      "Cabinda",
+      "Saurimo",
+      "Sambizanga",
+      "Kangandala",
+      "Huambo",
+      "Lobito",
+      "Kwanyama",
+      "Uige",
+      "Lumbala-Nguimbo",
+      "Ca\u00e1la",
+      "Ganda",
+      "Moxico",
+      "Ongiva",
+      "Kirima",
+      "Sumbe",
+      "Dande",
+      "Pango-Aluqu\u00e9m",
+      "Kuito  (Silva Porto)",
+      "Talatona",
+      "Banga",
+      "Dembos",
+      "Kibala",
+      "Cubal",
+      "Soyo",
+      "Matala",
+      "Libolo",
+      "Zango",
+      "Dundo",
+      "Amboim",
+      "Ba\u00eda Farta",
+      "Kazengo",
+      "Belas",
+      "Lubalo  LUKALA"
+    ]
+  },
+  "age": {
+    "type": "numeric",
+    "min": 0.94,
+    "max": 121.33
+  },
+  "age_missing": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 1.0
+  },
+  "sexo": {
+    "type": "categorical",
+    "categories": [
+      "M",
+      "F",
+      "I"
+    ]
+  },
+  "estado_civil": {
+    "type": "categorical",
+    "categories": [
+      "solteiro",
+      "indeterminado",
+      "divorciado",
+      "casado",
+      "viuvo",
+      "separado"
+    ]
+  },
+  "account_age_d_cliente": {
+    "type": "numeric",
+    "min": -16.0,
+    "max": 5590.0
+  },
+  "days_since_last_update_cliente": {
+    "type": "numeric",
+    "min": -23.0,
+    "max": 3233.0
+  },
+  "iddim_conta": {
+    "type": "numeric",
+    "min": 426.0,
+    "max": 8072832.0
+  },
+  "codigoconta": {
+    "type": "numeric",
+    "min": 1000011302.0,
+    "max": 2517109702.0
+  },
+  "idgrupo_dim_contadimensao": {
+    "type": "numeric",
+    "min": -1.0,
+    "max": 2797.0
+  },
+  "tipoconta": {
+    "type": "categorical",
+    "categories": [
+      "residencial",
+      "empresarial",
+      "agente"
+    ]
+  },
+  "tecnologia": {
+    "type": "categorical",
+    "categories": [
+      "DTH",
+      "Nenhuma"
+    ]
+  },
+  "account_age_d_conta": {
+    "type": "numeric",
+    "min": 92.0,
+    "max": 5557.0
+  },
+  "iddim_contaservico_dth": {
+    "type": "numeric",
+    "min": 2377627.0,
+    "max": 10824622.0
+  },
+  "account_age_d_contaservico": {
+    "type": "numeric",
+    "min": 92.0,
+    "max": 5557.0
+  },
+  "n_contacts": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 2.0
+  },
+  "last_contact_ts": {
+    "type": "datetime",
+    "min": "2023-12-12 00:00:00",
+    "max": "2025-05-17 00:00:00"
+  },
+  "n_successful_contacts": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 2.0
+  },
+  "any_success": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 1.0
+  },
+  "days_since_last_contact": {
+    "type": "numeric",
+    "min": 1.0,
+    "max": 30.0
+  },
+  "was_contacted": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 1.0
+  },
+  "topup_count": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 764.0
+  },
+  "topup_total_value": {
+    "type": "numeric",
+    "min": -46032.6,
+    "max": 16704149.34
+  },
+  "topup_avg_value": {
+    "type": "numeric",
+    "min": -852.45,
+    "max": 35742.1
+  },
+  "topup_std_value": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 303382.99162311875
+  },
+  "topup_cv_value": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 122.22793579861444
+  },
+  "topup_days_since_last": {
+    "type": "numeric",
+    "min": 1.0,
+    "max": 89.0
+  },
+  "used_selfcare": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 1.0
+  },
+  "topup_type_nunique": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 14.0
+  },
+  "topup_channel_nunique": {
+    "type": "numeric",
+    "min": 0.0,
+    "max": 1.0
+  }
+}

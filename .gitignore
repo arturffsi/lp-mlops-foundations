@@ -61,7 +61,7 @@ env/
 .DS_Store
 
 # MLOps artifacts
-*.parquet
+#*.parquet
 *.csv
 *.pkl
 *.joblib
@@ -92,6 +92,6 @@ temp/
 *.tmp
 
 # EDA outputs
-feature_schema.json
-data_metadata.json
-eda_report.html
+#feature_schema.json
+#data_metadata.json
+#eda_report.html
