@@ -197,7 +197,7 @@ def find_optimal_threshold(y_true, y_scores, target_recall):
         return 0.0, 0.0, 0.0
 
 
-def evaluate_model(model, X_valid, y_valid, config):
+def evaluate_model(model, X_valid, y_valid, config, train_size=None):
     """
     Evaluate model performance and print metrics.
 
@@ -260,6 +260,16 @@ def evaluate_model(model, X_valid, y_valid, config):
     print()
 
     # Return metrics dictionary
+    if train_size is None:
+        # Fallback: approximate train size from validation size and test_size
+        try:
+            test_size = float(config['training']['test_size'])
+            approx_train_size = int(len(y_valid) * (1 - test_size) / test_size)
+        except Exception:
+            approx_train_size = 0
+    else:
+        approx_train_size = int(train_size)
+
     return {
         'roc_auc': float(roc_auc),
         'pr_auc': float(pr_auc),
@@ -274,7 +284,7 @@ def evaluate_model(model, X_valid, y_valid, config):
         'false_negatives': int(fn),
         'churner_recall': float(recall),
         'churner_precision': float(precision),
-        'train_samples': len(model.get_all_params()),  # Placeholder
+        'train_samples': approx_train_size,
         'valid_samples': len(y_valid),
         'feature_count': len(X_valid.columns),
         'actual_churn_rate': float(y_valid.mean()),

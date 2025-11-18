@@ -125,14 +125,28 @@ learningpods-pipeline
 │   └── Saves model artifacts
 │
 ├── 3. EvaluateModel
-│   ├── Extracts metrics from training job
-│   └── Prepares evaluation.json
+│   ├── Uses the exact training job name passed from the pipeline
+│   ├── Extracts final metrics from that SageMaker training job
+│   └── Prepares evaluation.json for the quality gates step
 │
 └── 4. CheckModelQuality (Conditional)
     ├── Checks if metrics pass quality gates
     ├── If PASS: Registers model to Model Registry
     └── If FAIL: Skips registration
 ```
+
+### Pipeline Data Flow (High Level)
+
+- **Step 1 – ExportFromRedshift**  
+  Redshift → sampled data → S3 (Parquet).
+- **Step 2 – TrainChurnModel**  
+  S3 Parquet → `train.py` → model + training metrics (including `train_samples` / `valid_samples`).
+- **Step 3 – EvaluateModel**  
+  Pipeline passes the **exact training job name** → `evaluate_model.py` → calls `DescribeTrainingJob` → writes `evaluation.json` to `/opt/ml/processing/evaluation`.
+- **Step 4 – CheckModelQuality**  
+  Reads `evaluation.json` → applies quality gate thresholds → only if all pass, runs `RegisterChurnModel`.
+
+This makes the whole flow explicit and removes any guessing about which training job the evaluation step is using.
 
 ### Pipeline Parameters
 
@@ -199,12 +213,19 @@ X_train, X_valid, y_train, y_valid, cat_indices = prepare_features(df, config)
 # 5. Train model
 model = train_model(X_train, X_valid, y_train, y_valid, cat_indices, config)
 
-# 6. Evaluate
-metrics = evaluate_model(model, X_valid, y_valid, config)
+# 6. Evaluate (returns a rich metrics dict)
+metrics = evaluate_model(model, X_valid, y_valid, config, train_size=len(y_train))
 
 # 7. Save for SageMaker
 save_model(model, config, model_dir)
 ```
+
+The `metrics` dictionary includes:
+- `roc_auc`, `pr_auc`, `f1_score`, `recall`, `precision`, `accuracy`
+- `train_samples`: number of rows used for training
+- `valid_samples`: number of rows in the validation set
+- `feature_count`: number of features used by the model
+- Some convenient extra fields (e.g. `actual_churn_rate`, `predicted_churn_rate`)
 
 ### That's it! Clean and simple.
 

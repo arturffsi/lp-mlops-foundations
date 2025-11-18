@@ -28,7 +28,7 @@ from sagemaker.workflow.step_collections import RegisterModel
 from sagemaker.workflow.parameters import ParameterString, ParameterInteger, ParameterFloat
 from sagemaker.workflow.conditions import ConditionGreaterThanOrEqualTo
 from sagemaker.workflow.condition_step import ConditionStep
-from sagemaker.workflow.functions import JsonGet
+from sagemaker.workflow.functions import JsonGet, Join
 from sagemaker.workflow.properties import PropertyFile
 from sagemaker.inputs import TrainingInput
 from sagemaker.model_metrics import MetricsSource, ModelMetrics
@@ -56,8 +56,23 @@ def create_pipeline(
     print(f"{'='*60}\n")
 
     # Get SageMaker session and role
-    sagemaker_session = sagemaker.Session()
-    role = sagemaker.get_execution_role()
+    # Use boto3 session with the right profile for local execution
+    import boto3
+    try:
+        boto_session = boto3.Session(profile_name="AdministratorAccess-733246370304")
+        print(f"✅ Using AWS profile: AdministratorAccess-733246370304")
+    except:
+        boto_session = boto3.Session()
+        print(f"✅ Using default AWS credentials")
+
+    sagemaker_session = sagemaker.Session(boto_session=boto_session)
+
+    # Use a proper SageMaker execution role (not SSO assumed role)
+    sts = boto_session.client('sts')
+    account_id = sts.get_caller_identity()['Account']
+    role = f"arn:aws:iam::{account_id}:role/service-role/SageMaker-ExecutionRole-20250915T083600"
+    print(f"✅ Using SageMaker execution role: {role}")
+
     bucket = sagemaker_session.default_bucket()
 
     # Create datestamp for this run
@@ -65,7 +80,11 @@ def create_pipeline(
 
     # S3 paths
     pipeline_prefix = f"s3://{bucket}/{pipeline_name}"
-    redshift_export_path = f"s3://{bucket}/{pipeline_name}/redshift_export_{datestamp}/"
+
+    # Use existing S3 data instead of exporting from Redshift
+    # (avoids processing instance quota issues)
+    data_path = f"s3://{bucket}/learningpods/sample_data/"
+    print(f"   Using existing S3 data: {data_path}")
 
     print(f"📋 Configuration:")
     print(f"   Pipeline: {pipeline_name}")
@@ -81,7 +100,7 @@ def create_pipeline(
 
     instance_type = ParameterString(
         name="TrainingInstanceType",
-        default_value="ml.m5.xlarge"
+        default_value="ml.m5.2xlarge"  # Using ml.m5.2xlarge (has quota in this account)
     )
 
     n_estimators = ParameterInteger(
@@ -140,62 +159,10 @@ def create_pipeline(
     print()
 
     # =========================================================================
-    # Step 1: Export Data from Redshift to S3
+    # Step 1: Train Model (using existing S3 data)
     # =========================================================================
 
-    print(f"🔧 Configuring Step 1: Redshift Export...")
-
-    # Get PyTorch image for processing
-    pytorch_image = image_uris.retrieve(
-        framework="pytorch",
-        region=region,
-        version="2.0.0",
-        py_version="py310",
-        instance_type="ml.m5.large",
-        image_scope="training"
-    )
-
-    # Create processor for Redshift export
-    redshift_processor = ScriptProcessor(
-        image_uri=pytorch_image,
-        command=["python3"],
-        role=role,
-        instance_type="ml.m5.large",
-        instance_count=1,
-        sagemaker_session=sagemaker_session,
-        base_job_name=f"{pipeline_name}-redshift-export"
-    )
-
-    # Redshift export step
-    step_redshift_export = ProcessingStep(
-        name="ExportFromRedshift",
-        processor=redshift_processor,
-        code="export_redshift.py",
-        job_arguments=[
-            "--host", "redshift-cluster-dsi.cl4o4mmtx9ir.af-south-1.redshift.amazonaws.com",
-            "--port", "5439",
-            "--database", "prod",
-            "--user", "awsuser",
-            "--table", "dth_churn_ml_training.training_features",
-            "--sample-ratio", "0.003",
-            "--output-path", redshift_export_path
-        ],
-        outputs=[
-            ProcessingOutput(
-                output_name="export_status",
-                source="/opt/ml/processing/output",
-                destination=f"{pipeline_prefix}/export-status"
-            )
-        ]
-    )
-
-    print(f"   ✅ Redshift export configured")
-
-    # =========================================================================
-    # Step 2: Train Model
-    # =========================================================================
-
-    print(f"🔧 Configuring Step 2: Model Training...")
+    print(f"🔧 Configuring Step 1: Model Training...")
 
     # Create PyTorch estimator for training
     pytorch_estimator = PyTorch(
@@ -211,8 +178,7 @@ def create_pipeline(
             'n-estimators': n_estimators,
             'learning-rate': learning_rate,
             'depth': depth,
-            'l2-leaf-reg': l2_leaf_reg,
-            'mlflow-mode': 'disabled'
+            'l2-leaf-reg': l2_leaf_reg
         },
         base_job_name=f"{pipeline_name}-training",
         output_path=f"{pipeline_prefix}/training-output",
@@ -231,20 +197,19 @@ def create_pipeline(
         estimator=pytorch_estimator,
         inputs={
             'training': TrainingInput(
-                s3_data=redshift_export_path,
+                s3_data=data_path,
                 content_type="application/x-parquet"
             )
-        },
-        depends_on=[step_redshift_export]
+        }
     )
 
     print(f"   ✅ Training configured")
 
     # =========================================================================
-    # Step 3: Evaluate Model
+    # Step 2: Evaluate Model
     # =========================================================================
 
-    print(f"🔧 Configuring Step 3: Model Evaluation...")
+    print(f"🔧 Configuring Step 2: Model Evaluation...")
 
     # Create processor for evaluation
     sklearn_processor = SKLearnProcessor(
@@ -262,7 +227,8 @@ def create_pipeline(
         processor=sklearn_processor,
         code="evaluate_model.py",
         job_arguments=[
-            "--region", region
+            "--region", region,
+            "--training-job-name", step_train.properties.TrainingJobName,
         ],
         inputs=[
             ProcessingInput(
@@ -282,15 +248,18 @@ def create_pipeline(
     print(f"   ✅ Evaluation configured")
 
     # =========================================================================
-    # Step 4: Conditional Model Registration
+    # Step 3: Conditional Model Registration
     # =========================================================================
 
-    print(f"🔧 Configuring Step 4: Conditional Registration...")
+    print(f"🔧 Configuring Step 3: Conditional Registration...")
 
     # Model metrics for registry
     model_metrics = ModelMetrics(
         model_statistics=MetricsSource(
-            s3_uri=f"{step_eval.properties.ProcessingOutputConfig.Outputs['evaluation'].S3Output.S3Uri}/evaluation.json",
+            s3_uri=Join(
+                on="/",
+                values=[step_eval.properties.ProcessingOutputConfig.Outputs['evaluation'].S3Output.S3Uri, "evaluation.json"]
+            ),
             content_type="application/json"
         )
     )
@@ -390,7 +359,6 @@ def create_pipeline(
             recall_threshold
         ],
         steps=[
-            step_redshift_export,
             step_train,
             step_eval,
             step_cond
@@ -398,14 +366,13 @@ def create_pipeline(
         sagemaker_session=sagemaker_session
     )
 
-    print(f"✅ Pipeline created with 4 steps:")
-    print(f"   1. ExportFromRedshift")
-    print(f"   2. TrainChurnModel")
-    print(f"   3. EvaluateModel")
-    print(f"   4. CheckModelQuality (conditional registration)")
+    print(f"✅ Pipeline created with 3 steps:")
+    print(f"   1. TrainChurnModel (using existing S3 data)")
+    print(f"   2. EvaluateModel")
+    print(f"   3. CheckModelQuality (conditional registration)")
     print(f"{'='*60}\n")
 
-    return pipeline
+    return pipeline, role
 
 
 def main():
@@ -440,10 +407,9 @@ def main():
         print("📖 Simplified SageMaker Pipeline for Churn Prediction")
         print("="*60)
         print("\n🎯 Pipeline Steps:")
-        print("   1. ExportFromRedshift   - Export data from Redshift to S3")
-        print("   2. TrainChurnModel      - Train CatBoost model")
-        print("   3. EvaluateModel        - Extract metrics from training")
-        print("   4. CheckModelQuality    - Conditionally register if metrics pass")
+        print("   1. TrainChurnModel      - Train CatBoost model (uses existing S3 data)")
+        print("   2. EvaluateModel        - Extract metrics from training")
+        print("   3. CheckModelQuality    - Conditionally register if metrics pass")
         print("\nUsage:")
         print("  python pipeline.py --create              # Create/update pipeline")
         print("  python pipeline.py --execute             # Execute pipeline")
@@ -461,7 +427,7 @@ def main():
         return
 
     # Create pipeline
-    pipeline = create_pipeline(
+    pipeline, role = create_pipeline(
         pipeline_name=args.pipeline_name,
         model_package_group_name=args.model_group,
         region=args.region
@@ -470,7 +436,6 @@ def main():
     # Create/update pipeline
     if args.create:
         print(f"📤 Uploading pipeline definition to SageMaker...")
-        role = sagemaker.get_execution_role()
         pipeline.upsert(role_arn=role)
         print(f"✅ Pipeline '{args.pipeline_name}' created/updated!\n")
 

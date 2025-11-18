@@ -115,7 +115,7 @@ def main():
     model = train_model(X_train, X_valid, y_train, y_valid, cat_indices, config)
 
     # 6. Evaluate model
-    metrics = evaluate_model(model, X_valid, y_valid, config)
+    metrics = evaluate_model(model, X_valid, y_valid, config, train_size=len(y_train))
 
     # 7. Log to MLflow if enabled
     if args.mlflow_mode == 'sagemaker':

@@ -1,110 +1,143 @@
 """
 Simple Redshift Export Script for SageMaker Pipeline
 
-Exports data from Redshift to S3 as Parquet files.
+Exports data from Redshift to S3 as Parquet files using UNLOAD.
 This runs as a processing step in the SageMaker Pipeline.
+Based on the production export_to_s3.py pattern.
 """
 
 import argparse
 import os
-import pandas as pd
-import psycopg2
-from dotenv import load_dotenv
+import sys
 
 
 def export_redshift_to_s3(args):
     """
-    Export data from Redshift to S3.
+    Export data from Redshift to S3 using UNLOAD command.
 
     Args:
         args: Command line arguments with connection details
     """
-    print("=" * 60)
+    print("=" * 80)
     print("📊 Redshift Export to S3")
-    print("=" * 60)
+    print("=" * 80)
 
-    # Load environment variables
-    load_dotenv()
+    # Import redshift_connector
+    try:
+        import redshift_connector
+        print("✓ redshift_connector imported successfully")
+    except ImportError as e:
+        print(f"ERROR: redshift_connector not found: {e}")
+        print("Attempting to install...")
+        import subprocess
+        result = subprocess.run([sys.executable, "-m", "pip", "install", "redshift_connector"],
+                              capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"ERROR installing redshift_connector: {result.stderr}")
+            return 1
+        import redshift_connector
+        print("✓ redshift_connector installed successfully")
 
-    # Get password from environment
-    password = os.getenv('REDSHIFT_PASSWORD')
-    if not password:
-        raise RuntimeError("REDSHIFT_PASSWORD not found in environment variables")
+    # Build query with sampling
+    if args.sample_ratio:
+        select_query = f"SELECT * FROM {args.table} WHERE RANDOM() < {args.sample_ratio}"
+        print(f"Using sampling with ratio: {args.sample_ratio}")
+    else:
+        select_query = f"SELECT * FROM {args.table}"
+        print("Exporting full table")
 
-    print(f"\n🔌 Connecting to Redshift...")
-    print(f"   Host: {args.host}")
-    print(f"   Database: {args.database}")
-    print(f"   Table: {args.table}")
+    # Build UNLOAD SQL
+    sql = f"""
+UNLOAD ('{select_query}')
+TO '{args.output_path}'
+IAM_ROLE '{args.iam_role}'
+FORMAT AS PARQUET
+ALLOWOVERWRITE
+PARALLEL ON
+MANIFEST
+REGION '{args.region}';
+"""
 
-    # Connect to Redshift
-    conn = psycopg2.connect(
-        host=args.host,
-        port=args.port,
-        dbname=args.database,
-        user=args.user,
-        password=password
-    )
+    print(f"\n📋 Export Configuration:")
+    print(f"  Host: {args.host}")
+    print(f"  Database: {args.database}")
+    print(f"  Table: {args.table}")
+    print(f"  S3 Path: {args.output_path}")
+    print(f"  Region: {args.region}")
+    print(f"\n📝 SQL:\n{sql}")
+    print("=" * 80)
 
     try:
-        # Build query with sampling
-        query = f"SELECT * FROM {args.table}"
-        if args.sample_ratio:
-            query += f" WHERE RANDOM() < {args.sample_ratio}"
+        # Connect to Redshift with IAM authentication (no password needed!)
+        print("\n🔌 Connecting to Redshift with IAM (no password)...")
+        conn = redshift_connector.connect(
+            iam=True,
+            host=args.host,
+            region=args.region,
+            cluster_identifier=args.cluster_identifier,
+            database=args.database,
+            db_user=args.user,
+            ssl=True
+        )
 
-        print(f"\n📝 Query: {query}")
+        print("✓ Connected successfully")
 
-        # Load data
-        print(f"\n⏳ Loading data from Redshift...")
-        df = pd.read_sql(query, conn)
-        print(f"✅ Loaded {len(df):,} rows")
-
-    finally:
+        # Execute UNLOAD
+        print("\n🚀 Executing UNLOAD command...")
+        cursor = conn.cursor()
+        cursor.execute(sql)
+        conn.commit()
+        cursor.close()
         conn.close()
-        print("🔌 Connection closed")
 
-    # Save to S3
-    output_path = args.output_path
-    if not output_path.endswith('/'):
-        output_path += '/'
+        print("✓ UNLOAD completed successfully")
 
-    output_file = f"{output_path}data.parquet"
+        # Write success marker
+        output_dir = "/opt/ml/processing/output"
+        try:
+            os.makedirs(output_dir, exist_ok=True)
+            with open(f"{output_dir}/export_complete.txt", "w") as f:
+                f.write(f"Export completed successfully\n")
+                f.write(f"S3 Path: {args.output_path}\n")
+                f.write(f"Table: {args.table}\n")
+            print(f"\n✓ Success marker written to {output_dir}/export_complete.txt")
+        except Exception as e:
+            print(f"\n⚠️  Could not write success marker (not critical): {e}")
 
-    print(f"\n💾 Saving to S3: {output_file}")
-    df.to_parquet(output_file, index=False, engine='pyarrow')
-    print(f"✅ Saved {len(df):,} rows to S3")
+        print("\n" + "=" * 80)
+        print("✅ Redshift Export Complete")
+        print("=" * 80)
 
-    # Write success marker for SageMaker
-    try:
-        os.makedirs("/opt/ml/processing/output", exist_ok=True)
-        with open("/opt/ml/processing/output/export_complete.txt", "w") as f:
-            f.write(f"Export completed successfully\n")
-            f.write(f"Rows: {len(df):,}\n")
-            f.write(f"Output: {output_file}\n")
-        print("✅ Success marker written")
+        return 0
+
     except Exception as e:
-        print(f"⚠️  Could not write success marker: {e}")
-
-    print("\n" + "=" * 60)
-    print("✅ Redshift Export Complete")
-    print("=" * 60)
+        print("\n" + "=" * 80)
+        print(f"❌ ERROR: Redshift export failed")
+        print("=" * 80)
+        print(f"Error: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return 1
 
 
 def main():
     parser = argparse.ArgumentParser(description="Export Redshift data to S3")
 
     parser.add_argument("--host", required=True, help="Redshift host")
-    parser.add_argument("--port", type=int, default=5439, help="Redshift port")
     parser.add_argument("--database", required=True, help="Redshift database")
     parser.add_argument("--user", required=True, help="Redshift user")
+    parser.add_argument("--cluster-identifier", required=True, help="Redshift cluster identifier")
+    parser.add_argument("--iam-role", required=True, help="IAM role for UNLOAD")
     parser.add_argument("--table", required=True, help="Redshift table name")
     parser.add_argument("--sample-ratio", type=float, default=None,
                        help="Sample ratio (e.g., 0.003 for 0.3%)")
     parser.add_argument("--output-path", required=True,
                        help="S3 output path (e.g., s3://bucket/path/)")
+    parser.add_argument("--region", default="af-south-1", help="AWS region")
 
     args = parser.parse_args()
 
-    export_redshift_to_s3(args)
+    sys.exit(export_redshift_to_s3(args))
 
 
 if __name__ == "__main__":
