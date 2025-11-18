@@ -80,11 +80,7 @@ def create_pipeline(
 
     # S3 paths
     pipeline_prefix = f"s3://{bucket}/{pipeline_name}"
-
-    # Use existing S3 data instead of exporting from Redshift
-    # (avoids processing instance quota issues)
-    data_path = f"s3://{bucket}/learningpods/sample_data/"
-    print(f"   Using existing S3 data: {data_path}")
+    redshift_export_path = f"s3://{bucket}/{pipeline_name}/redshift_export_{datestamp}/"
 
     print(f"📋 Configuration:")
     print(f"   Pipeline: {pipeline_name}")
@@ -159,10 +155,67 @@ def create_pipeline(
     print()
 
     # =========================================================================
-    # Step 1: Train Model (using existing S3 data)
+    # Step 1: Export Data from Redshift to S3
     # =========================================================================
 
-    print(f"🔧 Configuring Step 1: Model Training...")
+    print(f"🔧 Configuring Step 1: Redshift Export...")
+
+    # Get PyTorch image for processing
+    pytorch_image = image_uris.retrieve(
+        framework="pytorch",
+        region=region,
+        version="2.0.0",
+        py_version="py310",
+        instance_type="ml.m5.large",
+        image_scope="training"
+    )
+
+    # Create processor for Redshift export
+    redshift_processor = ScriptProcessor(
+        image_uri=pytorch_image,
+        command=["python3"],
+        role=role,
+        instance_type="ml.m5.large",
+        instance_count=1,
+        sagemaker_session=sagemaker_session,
+        base_job_name=f"{pipeline_name}-redshift-export"
+    )
+
+    # Redshift IAM role for UNLOAD (separate from SageMaker execution role)
+    redshift_iam_role = f"arn:aws:iam::{account_id}:role/RedshiftIAMAuthRole"
+
+    # Redshift export step (using UNLOAD with IAM)
+    step_redshift_export = ProcessingStep(
+        name="ExportFromRedshift",
+        processor=redshift_processor,
+        code="export_redshift.py",
+        job_arguments=[
+            "--host", "redshift-cluster-dsi.cl4o4mmtx9ir.af-south-1.redshift.amazonaws.com",
+            "--database", "prod",
+            "--user", "svc_sagemaker",
+            "--cluster-identifier", "redshift-cluster-dsi",
+            "--iam-role", redshift_iam_role,
+            "--table", "dth_churn_ml_training.training_features",
+            "--sample-ratio", "0.003",
+            "--output-path", redshift_export_path,
+            "--region", region
+        ],
+        outputs=[
+            ProcessingOutput(
+                output_name="export_status",
+                source="/opt/ml/processing/output",
+                destination=f"{pipeline_prefix}/export-status"
+            )
+        ]
+    )
+
+    print(f"   ✅ Redshift export configured")
+
+    # =========================================================================
+    # Step 2: Train Model
+    # =========================================================================
+
+    print(f"🔧 Configuring Step 2: Model Training...")
 
     # Create PyTorch estimator for training
     pytorch_estimator = PyTorch(
