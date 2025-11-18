@@ -1,0 +1,99 @@
+# Simplified Configuration - Beginner Friendly but SageMaker Compatible
+
+# Data Configuration
+data:
+  source: "s3"  # "s3", "parquet", or "redshift" - s3 is fastest!
+
+  # S3 Parquet config (RECOMMENDED - fastest option, no VPN needed)
+  s3_uri: "s3://sagemaker-af-south-1-733246370304/learningpods/sample_data/"
+
+  # Local Parquet config (if using local parquet files)
+  parquet_uri: "s3://sagemaker-af-south-1-733246370304/redshift_exports/exports/1m_redshift_sample/"
+
+  # Redshift config (requires VPN connection)
+  # Random sample of 0.3% of data for fast training
+  redshift_sql: "SELECT * FROM dth_churn_ml_training.training_features WHERE RANDOM() < 0.003;"
+  redshift_kwargs:
+    host: "redshift-cluster-dsi.cl4o4mmtx9ir.af-south-1.redshift.amazonaws.com"
+    port: 5439
+    dbname: "prod"
+    user: "awsuser"
+    password: "${REDSHIFT_PASSWORD}"  # Will be loaded from environment variable
+
+# MLflow Configuration
+mlflow:
+  tracking_uri: "arn:aws:sagemaker:af-south-1:733246370304:mlflow-tracking-server/dth-churn-ml"
+  experiment_name: "dth-churn-model"
+
+# Model Configuration
+model:
+  # What we're predicting
+  target_col: "churn"
+
+  # CatBoost hyperparameters (from hyperparameter tuning - best found parameters)
+  # These came from Optuna optimization in 3_experimentation_hyperparameter_example.ipynb
+  n_estimators: 811          # Number of trees (optimized from 300-1000 range)
+  learning_rate: 0.044       # How fast the model learns (optimized from 0.01-0.3)
+  depth: 5                   # Tree depth (optimized from 4-10)
+  l2_leaf_reg: 1.015         # Regularization to prevent overfitting (optimized from 1-10)
+
+  # Training settings
+  early_stopping_rounds: 50  # Stop if no improvement for 50 iterations
+  random_seed: 42            # For reproducibility
+  use_gpu: false             # Set to true if using GPU instances
+
+# Training Configuration
+training:
+  test_size: 0.2              # 20% for validation
+  target_recall_threshold: 0.8  # We want to catch 80% of churners
+
+# Features Configuration
+features:
+  # ID columns (will be dropped before training)
+  id_features:
+    - "idconsumo"
+    - "codigocontaservico"
+    - "idconta"
+    - "iddim_cliente"
+    - "idcliente"
+    - "codigocliente"
+    - "iddim_conta"
+    - "codigoconta"
+    - "idgrupo_dim_contadimensao"
+    - "iddim_contaservico_dth"
+
+  # Date columns (handled separately)
+  datetime_features:
+    - "iddim_date_inicio"
+    - "iddim_date_fim"
+    - "account_age_d_cliente"
+    - "days_since_last_update_cliente"
+
+  # Integer features
+  int_features:
+    - "codigocontaservico"
+    - "codigocliente"
+    - "codigoconta"
+    - "id_contaservico"
+    - "idconta"
+    - "n_dias_subscricao"
+    - "n_dias_expirado"
+
+  # Float features
+  float_features:
+    - "gap_since_prev_expiry"
+    - "mean_len_prev"
+    - "std_len_prev"
+    - "id_produto_actual"
+    - "tipo_subscricao"
+    - "contract_number"
+    - "contract_len_days"
+    - "tenure_days"
+    - "age"
+    - "topup_total_value"
+    - "topup_avg_value"
+
+# Output Configuration
+output:
+  model_dir: "models"
+  artifacts_dir: "artifacts"
