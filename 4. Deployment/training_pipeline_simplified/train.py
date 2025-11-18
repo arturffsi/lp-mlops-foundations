@@ -6,7 +6,7 @@ Clean code, clear steps, easy to understand.
 
 Usage:
   python train.py                    # Local training
-  python train.py --mlflow-mode disabled  # Disable MLflow
+  python train.py --model-dir ./models  # Local training with custom model dir
 """
 
 import argparse
@@ -62,10 +62,6 @@ def main():
     # SageMaker paths
     parser.add_argument("--model-dir", default=os.environ.get("SM_MODEL_DIR", "/opt/ml/model"))
 
-    # MLflow mode
-    parser.add_argument("--mlflow-mode", choices=['sagemaker', 'disabled'],
-                       default='disabled', help="MLflow tracking mode")
-
     args = parser.parse_args()
 
     # Print header
@@ -94,14 +90,6 @@ def main():
     print(f"   l2_leaf_reg: {config['model']['l2_leaf_reg']}")
     print()
 
-    # Setup MLflow if enabled
-    if args.mlflow_mode == 'sagemaker':
-        import mlflow
-        mlflow.set_tracking_uri(config['mlflow']['tracking_uri'])
-        mlflow.set_experiment(config['mlflow']['experiment_name'])
-        mlflow.start_run()
-        print("✅ MLflow tracking enabled\n")
-
     # 2. Load data
     df = load_data(config)
 
@@ -117,28 +105,10 @@ def main():
     # 6. Evaluate model
     metrics = evaluate_model(model, X_valid, y_valid, config, train_size=len(y_train))
 
-    # 7. Log to MLflow if enabled
-    if args.mlflow_mode == 'sagemaker':
-        import mlflow
-        mlflow.log_params({
-            'n_estimators': config['model']['n_estimators'],
-            'learning_rate': config['model']['learning_rate'],
-            'depth': config['model']['depth'],
-            'l2_leaf_reg': config['model']['l2_leaf_reg']
-        })
-        mlflow.log_metrics({
-            'roc_auc': metrics['roc_auc'],
-            'f1_score': metrics['f1_score'],
-            'recall': metrics['recall'],
-            'precision': metrics['precision']
-        })
-        mlflow.catboost.log_model(model, "model")
-        mlflow.end_run()
-
-    # 8. Save model for SageMaker
+    # 7. Save model for SageMaker
     save_model(model, config, args.model_dir)
 
-    # 9. Write metrics for SageMaker
+    # 8. Write metrics for SageMaker
     write_sagemaker_metrics(metrics)
 
     # Print summary

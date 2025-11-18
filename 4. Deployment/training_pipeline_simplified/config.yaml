@@ -20,11 +20,6 @@ data:
     user: "awsuser"
     password: "${REDSHIFT_PASSWORD}"  # Will be loaded from environment variable
 
-# MLflow Configuration
-mlflow:
-  tracking_uri: "arn:aws:sagemaker:af-south-1:733246370304:mlflow-tracking-server/dth-churn-ml"
-  experiment_name: "dth-churn-model"
-
 # Model Configuration
 model:
   # What we're predicting

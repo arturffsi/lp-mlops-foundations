@@ -136,9 +136,14 @@ def load_from_parquet(uri):
             print(f"   Found {len(parquet_keys)} parquet file(s)")
 
             # Load and concatenate all parquet files
-            # Use s3fs with the boto3 session for authentication
+            # Use s3fs with credentials extracted from boto3 session
             import s3fs
-            fs = s3fs.S3FileSystem(session=session)
+            credentials = session.get_credentials()
+            fs = s3fs.S3FileSystem(
+                key=credentials.access_key,
+                secret=credentials.secret_key,
+                token=credentials.token
+            )
 
             dfs = []
             for key in parquet_keys:
