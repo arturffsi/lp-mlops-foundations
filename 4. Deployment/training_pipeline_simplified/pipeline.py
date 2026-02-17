@@ -21,7 +21,7 @@ from datetime import datetime
 import sagemaker
 from sagemaker.pytorch import PyTorch
 from sagemaker.sklearn.processing import SKLearnProcessor
-from sagemaker.processing import ScriptProcessor, ProcessingInput, ProcessingOutput
+from sagemaker.processing import ScriptProcessor, ProcessingInput, ProcessingOutput, NetworkConfig
 from sagemaker.workflow.pipeline import Pipeline
 from sagemaker.workflow.steps import TrainingStep, ProcessingStep
 from sagemaker.workflow.step_collections import RegisterModel
@@ -59,9 +59,9 @@ def create_pipeline(
     # Use boto3 session with the right profile for local execution
     import boto3
     try:
-        boto_session = boto3.Session(profile_name="AdministratorAccess-733246370304")
-        print(f"✅ Using AWS profile: AdministratorAccess-733246370304")
-    except:
+        boto_session = boto3.Session(profile_name="SageMaker-Full-AI-Access-733246370304")
+        print(f"✅ Using AWS profile: SageMaker-Full-AI-Access-733246370304")
+    except Exception:
         boto_session = boto3.Session()
         print(f"✅ Using default AWS credentials")
 
@@ -81,6 +81,8 @@ def create_pipeline(
     # S3 paths
     pipeline_prefix = f"s3://{bucket}/{pipeline_name}"
     redshift_export_path = f"s3://{bucket}/{pipeline_name}/redshift_export_{datestamp}/"
+    # Data will come from Redshift export step
+    data_path = redshift_export_path
 
     print(f"📋 Configuration:")
     print(f"   Pipeline: {pipeline_name}")
@@ -170,6 +172,14 @@ def create_pipeline(
         image_scope="training"
     )
 
+    # VPC config - same as production pipeline (churn-training-pipeline-v2)
+    # Needed so the container can reach Redshift which is in a private VPC
+    vpc_config = NetworkConfig(
+        security_group_ids=["sg-017fb44c1ff043deb"],
+        subnets=["subnet-06cf22533465bffc6", "subnet-04a897538d1ac1390"],
+        enable_network_isolation=False
+    )
+
     # Create processor for Redshift export
     redshift_processor = ScriptProcessor(
         image_uri=pytorch_image,
@@ -178,25 +188,27 @@ def create_pipeline(
         instance_type="ml.m5.large",
         instance_count=1,
         sagemaker_session=sagemaker_session,
-        base_job_name=f"{pipeline_name}-redshift-export"
+        base_job_name=f"{pipeline_name}-redshift-export",
+        network_config=vpc_config
     )
 
     # Redshift IAM role for UNLOAD (separate from SageMaker execution role)
     redshift_iam_role = f"arn:aws:iam::{account_id}:role/RedshiftIAMAuthRole"
 
     # Redshift export step (using UNLOAD with IAM)
+    # Uses modulo sampling (idconsumo % 333 = 0) which is much faster than RANDOM()
     step_redshift_export = ProcessingStep(
         name="ExportFromRedshift",
         processor=redshift_processor,
         code="export_redshift.py",
         job_arguments=[
-            "--host", "redshift-cluster-dsi.cl4o4mmtx9ir.af-south-1.redshift.amazonaws.com",
+            "--host", "zap-airflow-endpoint-omdjytkjkmzjhjkmiaoe.cl4o4mmtx9ir.af-south-1.redshift.amazonaws.com",
             "--database", "prod",
             "--user", "svc_sagemaker",
             "--cluster-identifier", "redshift-cluster-dsi",
             "--iam-role", redshift_iam_role,
             "--table", "dth_churn_ml_training.training_features",
-            "--sample-ratio", "0.003",
+            "--modulo-divisor", "333",  # ~0.3% sample, much faster than RANDOM()
             "--output-path", redshift_export_path,
             "--region", region
         ],
@@ -244,7 +256,7 @@ def create_pipeline(
         ]
     )
 
-    # Training step
+    # Training step (depends on Redshift export)
     step_train = TrainingStep(
         name="TrainChurnModel",
         estimator=pytorch_estimator,
@@ -253,16 +265,17 @@ def create_pipeline(
                 s3_data=data_path,
                 content_type="application/x-parquet"
             )
-        }
+        },
+        depends_on=[step_redshift_export]
     )
 
     print(f"   ✅ Training configured")
 
     # =========================================================================
-    # Step 2: Evaluate Model
+    # Step 3: Evaluate Model
     # =========================================================================
 
-    print(f"🔧 Configuring Step 2: Model Evaluation...")
+    print(f"🔧 Configuring Step 3: Model Evaluation...")
 
     # Create processor for evaluation
     sklearn_processor = SKLearnProcessor(
@@ -301,10 +314,10 @@ def create_pipeline(
     print(f"   ✅ Evaluation configured")
 
     # =========================================================================
-    # Step 3: Conditional Model Registration
+    # Step 4: Conditional Model Registration
     # =========================================================================
 
-    print(f"🔧 Configuring Step 3: Conditional Registration...")
+    print(f"🔧 Configuring Step 4: Conditional Registration...")
 
     # Model metrics for registry
     model_metrics = ModelMetrics(
@@ -412,6 +425,7 @@ def create_pipeline(
             recall_threshold
         ],
         steps=[
+            step_redshift_export,
             step_train,
             step_eval,
             step_cond
@@ -419,10 +433,11 @@ def create_pipeline(
         sagemaker_session=sagemaker_session
     )
 
-    print(f"✅ Pipeline created with 3 steps:")
-    print(f"   1. TrainChurnModel (using existing S3 data)")
-    print(f"   2. EvaluateModel")
-    print(f"   3. CheckModelQuality (conditional registration)")
+    print(f"✅ Pipeline created with 4 steps:")
+    print(f"   1. ExportFromRedshift (export data to S3)")
+    print(f"   2. TrainChurnModel")
+    print(f"   3. EvaluateModel")
+    print(f"   4. CheckModelQuality (conditional registration)")
     print(f"{'='*60}\n")
 
     return pipeline, role
@@ -460,9 +475,10 @@ def main():
         print("📖 Simplified SageMaker Pipeline for Churn Prediction")
         print("="*60)
         print("\n🎯 Pipeline Steps:")
-        print("   1. TrainChurnModel      - Train CatBoost model (uses existing S3 data)")
-        print("   2. EvaluateModel        - Extract metrics from training")
-        print("   3. CheckModelQuality    - Conditionally register if metrics pass")
+        print("   1. ExportFromRedshift   - Export fresh data from Redshift to S3")
+        print("   2. TrainChurnModel      - Train CatBoost model")
+        print("   3. EvaluateModel        - Extract metrics from training")
+        print("   4. CheckModelQuality    - Conditionally register if metrics pass")
         print("\nUsage:")
         print("  python pipeline.py --create              # Create/update pipeline")
         print("  python pipeline.py --execute             # Execute pipeline")

@@ -3,12 +3,12 @@ Simple Redshift Export Script for SageMaker Pipeline
 
 Exports data from Redshift to S3 as Parquet files using UNLOAD.
 This runs as a processing step in the SageMaker Pipeline.
-Based on the production export_to_s3.py pattern.
 """
 
 import argparse
 import os
 import sys
+import traceback
 
 
 def export_redshift_to_s3(args):
@@ -39,9 +39,13 @@ def export_redshift_to_s3(args):
         print("✓ redshift_connector installed successfully")
 
     # Build query with sampling
-    if args.sample_ratio:
+    # Use modulo sampling on idconsumo (much faster than RANDOM())
+    if args.modulo_divisor:
+        select_query = f"SELECT * FROM {args.table} WHERE idconsumo % {args.modulo_divisor} = 0"
+        print(f"Using modulo sampling: idconsumo % {args.modulo_divisor} = 0 (~{100/args.modulo_divisor:.2f}% sample)")
+    elif args.sample_ratio:
         select_query = f"SELECT * FROM {args.table} WHERE RANDOM() < {args.sample_ratio}"
-        print(f"Using sampling with ratio: {args.sample_ratio}")
+        print(f"Using RANDOM() sampling with ratio: {args.sample_ratio}")
     else:
         select_query = f"SELECT * FROM {args.table}"
         print("Exporting full table")
@@ -115,7 +119,6 @@ REGION '{args.region}';
         print(f"❌ ERROR: Redshift export failed")
         print("=" * 80)
         print(f"Error: {str(e)}")
-        import traceback
         traceback.print_exc()
         return 1
 
@@ -129,15 +132,24 @@ def main():
     parser.add_argument("--cluster-identifier", required=True, help="Redshift cluster identifier")
     parser.add_argument("--iam-role", required=True, help="IAM role for UNLOAD")
     parser.add_argument("--table", required=True, help="Redshift table name")
+    parser.add_argument("--modulo-divisor", type=int, default=None,
+                       help="Modulo divisor for sampling (e.g., 333 for ~0.3%% sample)")
     parser.add_argument("--sample-ratio", type=float, default=None,
-                       help="Sample ratio (e.g., 0.003 for 0.3%)")
+                       help="Sample ratio using RANDOM() - slower, use modulo-divisor instead")
     parser.add_argument("--output-path", required=True,
                        help="S3 output path (e.g., s3://bucket/path/)")
     parser.add_argument("--region", default="af-south-1", help="AWS region")
 
     args = parser.parse_args()
 
-    sys.exit(export_redshift_to_s3(args))
+    try:
+        exit_code = export_redshift_to_s3(args)
+    except Exception as e:
+        print(f"\nUNCAUGHT EXCEPTION: {e}")
+        traceback.print_exc()
+        exit_code = 1
+
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

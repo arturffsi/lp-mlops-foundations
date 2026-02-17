@@ -11,8 +11,8 @@ data:
   parquet_uri: "s3://sagemaker-af-south-1-733246370304/redshift_exports/exports/1m_redshift_sample/"
 
   # Redshift config (requires VPN connection)
-  # Random sample of 0.3% of data for fast training
-  redshift_sql: "SELECT * FROM dth_churn_ml_training.training_features WHERE RANDOM() < 0.003;"
+  # Fast ~0.3% sample using modulo on PK (much faster than RANDOM())
+  redshift_sql: "SELECT * FROM dth_churn_ml_training.training_features WHERE idconsumo % 333 = 0;"
   redshift_kwargs:
     host: "redshift-cluster-dsi.cl4o4mmtx9ir.af-south-1.redshift.amazonaws.com"
     port: 5439
@@ -64,13 +64,9 @@ features:
     - "account_age_d_cliente"
     - "days_since_last_update_cliente"
 
-  # Integer features
+  # Integer features (excluding ID columns which are dropped above)
   int_features:
-    - "codigocontaservico"
-    - "codigocliente"
-    - "codigoconta"
     - "id_contaservico"
-    - "idconta"
     - "n_dias_subscricao"
     - "n_dias_expirado"
 

@@ -29,3 +29,9 @@ Thumbs.db
 
 # SageMaker
 .sagemaker/
+
+# CatBoost training artifacts
+catboost_info/
+
+# Environment variables (may contain secrets)
+.env

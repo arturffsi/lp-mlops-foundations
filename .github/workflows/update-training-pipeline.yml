@@ -1,0 +1,77 @@
+# =============================================================================
+# GitHub Actions Workflow: Update & Execute SageMaker Training Pipeline
+#
+# This workflow automatically updates and runs our SageMaker training pipeline
+# whenever code changes are pushed to the main branch.
+#
+# HOW IT WORKS:
+#   1. You push code changes to GitHub (git push)
+#   2. GitHub detects the push and checks if any pipeline files changed
+#   3. If yes, it spins up a fresh Ubuntu machine (a "runner")
+#   4. The runner installs Python, dependencies, and AWS credentials
+#   5. It runs pipeline.py --create to upload the new code to SageMaker
+#   6. It runs pipeline.py --execute to start a training run
+#
+# PREREQUISITES:
+#   You need to add these secrets in GitHub (Settings > Secrets > Actions):
+#   - AWS_ACCESS_KEY_ID: Your AWS access key
+#   - AWS_SECRET_ACCESS_KEY: Your AWS secret key
+# =============================================================================
+
+# The name that appears in the GitHub Actions tab
+name: Update & Execute Training Pipeline
+
+# WHEN should this workflow run?
+on:
+  push:
+    # Only on the main branch (not on feature branches)
+    branches: [main]
+
+    # Only when these files change (saves money - no need to run for README edits)
+    paths:
+      - '4. Deployment/training_pipeline_simplified/**'    # Any file in the pipeline folder
+      - '!4. Deployment/training_pipeline_simplified/*.md'  # But NOT markdown docs
+
+# WHAT should this workflow do?
+jobs:
+  update-and-execute:
+    # Use a fresh Ubuntu machine provided by GitHub (free for public repos)
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Download our code from GitHub onto the runner machine
+      # Without this, the runner has no access to our files
+      - uses: actions/checkout@v4
+
+      # Step 2: Install Python 3.12 on the runner
+      # GitHub runners come with Python but we want a specific version
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Step 3: Install the Python packages we need
+      # Same as running "pip install ..." on your laptop
+      - name: Install dependencies
+        run: pip install sagemaker boto3 pyyaml catboost pyarrow scikit-learn
+
+      # Step 4: Configure AWS credentials so we can talk to SageMaker
+      # The secrets are stored in GitHub (never visible in logs)
+      # This is the equivalent of "aws configure" on your laptop
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: af-south-1
+
+      # Step 5: Upload the updated pipeline definition to SageMaker
+      # This packages train.py, train_utils.py, etc. and sends them to S3
+      # Then updates the pipeline DAG (steps, parameters, conditions)
+      - name: Update pipeline definition
+        working-directory: '4. Deployment/training_pipeline_simplified'
+        run: python pipeline.py --create
+
+      # Step 6: Start a training run with the updated code
+      # This kicks off: Redshift Export → Train → Evaluate → Register
+      - name: Execute pipeline
+        working-directory: '4. Deployment/training_pipeline_simplified'
+        run: python pipeline.py --execute

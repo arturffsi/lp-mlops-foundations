@@ -59,8 +59,8 @@ def main():
     parser.add_argument("--depth", type=int, help="Tree depth")
     parser.add_argument("--l2-leaf-reg", type=float, help="L2 regularization")
 
-    # SageMaker paths
-    parser.add_argument("--model-dir", default=os.environ.get("SM_MODEL_DIR", "/opt/ml/model"))
+    # SageMaker paths (defaults to local 'models' dir when running locally)
+    parser.add_argument("--model-dir", default=os.environ.get("SM_MODEL_DIR", "models"))
 
     args = parser.parse_args()
 
@@ -105,8 +105,8 @@ def main():
     # 6. Evaluate model
     metrics = evaluate_model(model, X_valid, y_valid, config, train_size=len(y_train))
 
-    # 7. Save model for SageMaker
-    save_model(model, config, args.model_dir)
+    # 7. Save model for SageMaker (with metrics)
+    save_model(model, config, args.model_dir, metrics=metrics)
 
     # 8. Write metrics for SageMaker
     write_sagemaker_metrics(metrics)

@@ -106,15 +106,15 @@ def load_from_parquet(uri):
             print(f"   S3 Prefix: {prefix}")
 
             # Create boto3 session with specific profile
-            # Try AdministratorAccess first, fall back to DataScientist or default
+            # Try SageMaker-Full-AI-Access first, fall back to other profiles or default
             try:
-                session = boto3.Session(profile_name="AdministratorAccess-733246370304")
-                print(f"   Using AWS profile: AdministratorAccess-733246370304")
-            except:
+                session = boto3.Session(profile_name="SageMaker-Full-AI-Access-733246370304")
+                print(f"   Using AWS profile: SageMaker-Full-AI-Access-733246370304")
+            except Exception:
                 try:
                     session = boto3.Session(profile_name="DataScientist-733246370304")
                     print(f"   Using AWS profile: DataScientist-733246370304")
-                except:
+                except Exception:
                     # Fall back to default credentials (for SageMaker environment)
                     session = boto3.Session()
                     print(f"   Using default AWS credentials")

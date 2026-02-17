@@ -282,8 +282,6 @@ def evaluate_model(model, X_valid, y_valid, config, train_size=None):
         'false_positives': int(fp),
         'true_negatives': int(tn),
         'false_negatives': int(fn),
-        'churner_recall': float(recall),
-        'churner_precision': float(precision),
         'train_samples': approx_train_size,
         'valid_samples': len(y_valid),
         'feature_count': len(X_valid.columns),
@@ -292,7 +290,7 @@ def evaluate_model(model, X_valid, y_valid, config, train_size=None):
     }
 
 
-def save_model(model, config, model_dir="/opt/ml/model"):
+def save_model(model, config, model_dir="/opt/ml/model", metrics=None):
     """
     Save model for SageMaker deployment.
 
@@ -300,10 +298,12 @@ def save_model(model, config, model_dir="/opt/ml/model"):
         model: Trained CatBoost model
         config: Configuration dictionary
         model_dir: Directory to save model
+        metrics: Optional metrics dictionary to save
     """
     import os
     import pickle
     import json
+    from datetime import datetime
 
     print(f"\n💾 Saving model to: {model_dir}")
 
@@ -320,6 +320,34 @@ def save_model(model, config, model_dir="/opt/ml/model"):
     with open(config_path, 'w') as f:
         json.dump(config, f, indent=2, default=str)
     print(f"   ✅ Config saved")
+
+    # Save hyperparameters and training info
+    hyperparameters = {
+        'n_estimators': config['model']['n_estimators'],
+        'learning_rate': config['model']['learning_rate'],
+        'depth': config['model']['depth'],
+        'l2_leaf_reg': config['model']['l2_leaf_reg'],
+        'early_stopping_rounds': config['model']['early_stopping_rounds'],
+        'random_seed': config['model']['random_seed'],
+        'best_iteration': model.best_iteration_,
+        'trained_at': datetime.now().isoformat()
+    }
+    # Add training data info from metrics if available
+    if metrics:
+        hyperparameters['train_samples'] = metrics.get('train_samples', 0)
+        hyperparameters['valid_samples'] = metrics.get('valid_samples', 0)
+        hyperparameters['feature_count'] = metrics.get('feature_count', 0)
+    hp_path = os.path.join(model_dir, "hyperparameters.json")
+    with open(hp_path, 'w') as f:
+        json.dump(hyperparameters, f, indent=2)
+    print(f"   ✅ Hyperparameters saved")
+
+    # Save metrics if provided
+    if metrics:
+        metrics_path = os.path.join(model_dir, "metrics.json")
+        with open(metrics_path, 'w') as f:
+            json.dump(metrics, f, indent=2)
+        print(f"   ✅ Metrics saved")
 
     print(f"✅ All artifacts saved successfully\n")
 
