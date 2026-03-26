@@ -28,9 +28,24 @@ Edit `config.yaml` to change hyperparameters.
 
 Run the full production pipeline on AWS.
 
+### `--create` vs `--execute`
+
+| Flag | What it does | When to use |
+|------|-------------|-------------|
+| `--create` | Uploads (or overwrites) the pipeline definition (DAG) to SageMaker | First time, or after changing `pipeline.py` |
+| `--execute` | Starts a new pipeline run using the uploaded definition | Every time you want to train |
+
+- **First time:** use both together — `--create --execute`
+- **Subsequent runs:** `--execute` alone is enough (the definition is already uploaded)
+- **After editing `pipeline.py`:** use `--create --execute` again to push the updated definition
+- **Running `--create` on an existing pipeline is safe** — it does an upsert (overwrites the definition without affecting past runs or registered models)
+
 ```bash
-# Create and execute pipeline
+# First time (or after changing pipeline.py)
 python pipeline.py --create --execute
+
+# Subsequent runs
+python pipeline.py --execute
 ```
 
 **What happens:**

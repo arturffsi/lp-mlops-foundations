@@ -91,6 +91,10 @@ tmp/
 temp/
 *.tmp
 
+# Inference pipeline local
+4. Deployment/inference_pipeline_local/
+4. Deployment/old_reference_py_pipeline/
+
 # EDA outputs
 #feature_schema.json
 #data_metadata.json

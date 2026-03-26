@@ -1,18 +1,5 @@
 """
 Load and prepare data for inference.
-
-Usage:
-    from load_data import load_inference_data, preprocess, prepare_features
-
-    # Load from Redshift
-    df = load_inference_data()
-
-    # Or load from file
-    df = load_inference_data(input_file="data.parquet")
-
-    # Preprocess and prepare features
-    df = preprocess(df, config)
-    X, cat_indices = prepare_features(df, config)
 """
 
 import os
@@ -21,28 +8,19 @@ import sys
 import numpy as np
 import pandas as pd
 
-# Add training pipeline to path (to reuse data_loader)
+# Reuse the data_loader from the training pipeline
 TRAINING_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "training_pipeline_simplified")
 )
 sys.path.insert(0, TRAINING_DIR)
 from data_loader import load_data as _load_from_config
 
-# Default inference table
 INFERENCE_TABLE = "dth_churn_ml_inference.inference_features"
 
 
 def load_inference_data(input_file=None, config=None):
-    """
-    Load data for inference.
+    """Load data from a file (CSV/Parquet) or from Redshift."""
 
-    Args:
-        input_file: Path to CSV or Parquet file (optional)
-        config: Config dict (required if loading from Redshift)
-
-    Returns:
-        DataFrame with raw data
-    """
     # Option 1: Load from file
     if input_file:
         print(f"Loading data from: {input_file}")
@@ -57,18 +35,17 @@ def load_inference_data(input_file=None, config=None):
         print(f"Loaded {len(df):,} rows")
         return df
 
-    # Option 2: Load from Redshift
+    # Option 2: Load from Redshift (requires VPN)
     if config is None:
         raise ValueError("config is required when loading from Redshift")
 
     print(f"Loading data from Redshift: {INFERENCE_TABLE}")
 
-    # Set up Redshift query
     config["data"]["source"] = "redshift"
     config["data"]["redshift_sql"] = (
         f"SELECT * FROM {INFERENCE_TABLE} "
         "WHERE iddim_date_fim >= CURRENT_DATE "
-        "AND idconsumo % 4 = 0;"
+        "LIMIT 100000;"
     )
 
     df = _load_from_config(config)
@@ -77,16 +54,7 @@ def load_inference_data(input_file=None, config=None):
 
 
 def preprocess(df, config):
-    """
-    Apply same preprocessing as training.
-
-    Args:
-        df: Raw DataFrame
-        config: Config dictionary
-
-    Returns:
-        Preprocessed DataFrame
-    """
+    """Apply same preprocessing as training."""
     print("Preprocessing data...")
 
     # Convert timedelta columns to days
@@ -111,17 +79,7 @@ def preprocess(df, config):
 
 
 def prepare_features(df, config, model=None):
-    """
-    Prepare features for CatBoost prediction.
-
-    Args:
-        df: Preprocessed DataFrame
-        config: Config dictionary
-        model: Trained CatBoost model (to get expected feature order)
-
-    Returns:
-        (X, cat_indices) - Feature DataFrame and categorical column indices
-    """
+    """Prepare features for CatBoost prediction."""
     print("Preparing features...")
 
     target_col = config.get("model", {}).get("target_col", "churn")

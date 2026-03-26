@@ -53,7 +53,7 @@ A **training pipeline** automates the steps of training a machine learning model
 ```
 ┌─────────────────────────────────────────────────────┐
 │  STEP 1: ExportFromRedshift                         │
-│  Export ~110k rows from Redshift → S3 (Parquet)     │
+│  Export ~0.3% of Redshift table → S3 (Parquet)      │
 └─────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────┐
@@ -142,7 +142,7 @@ python train.py
 ```
 
 **What happens:**
-- Loads ~110k rows from S3
+- Loads ~155k rows from S3
 - Trains a CatBoost model
 - Saves model to `./models/`
 - Prints metrics (ROC-AUC, Recall, F1, etc.)
@@ -175,8 +175,9 @@ python pipeline.py --execute \
 ## Understanding `--create` vs `--execute`
 
 ### `--create`
-Uploads your code and pipeline definition to SageMaker.
+Uploads (or overwrites) your code and pipeline definition to SageMaker.
 **Nothing runs yet** — it just saves the blueprint.
+Safe to re-run on an existing pipeline — it does an upsert without affecting past runs or registered models.
 
 ### `--execute`
 Starts a training run using the latest uploaded definition.

@@ -1,23 +1,19 @@
 # Quick Start
 
-```
+```bash
 pip install -r requirements.txt
 ```
 
-```
-python infer.py \
-  --input /path/to/input.parquet \
-  --model-dir ../training_pipeline_simplified/models \
-  --output predictions.csv
+## Using the model from SageMaker (recommended)
+
+```bash
+python infer.py --from-registry --input data.parquet --output predictions.csv
 ```
 
-## Or load from S3/Redshift (uses config.yaml)
+## Using a local model
 
-```
-python infer.py \
-  --model-dir ../training_pipeline_simplified/models \
-  --output predictions.csv
+```bash
+python infer.py --model-dir ../training_pipeline_simplified/models --input data.parquet
 ```
 
-Default query (today only):
-`SELECT * FROM dth_churn_ml_inference.inference_features WHERE <date_col>::date = current_date;`
+**See README.md for full documentation.**

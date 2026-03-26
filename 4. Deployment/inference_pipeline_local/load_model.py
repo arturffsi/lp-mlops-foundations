@@ -1,17 +1,18 @@
 """
 Load a trained churn prediction model.
 
-Usage:
-    from load_model import load_model, load_config, load_threshold
-
-    model = load_model("../training_pipeline_simplified/models")
-    config = load_config("../training_pipeline_simplified/models")
-    threshold = load_threshold("../training_pipeline_simplified/models")
+Supports two sources:
+  1. Local directory (from training_pipeline_simplified/models/)
+  2. SageMaker Model Registry (downloads the latest approved model)
 """
 
 import json
 import os
 import pickle
+import tarfile
+import tempfile
+
+import boto3
 import yaml
 
 
@@ -23,17 +24,70 @@ TRAINING_DIR = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "..", "training_pipeline_simplified")
 )
 
+# SageMaker Model Registry settings
+MODEL_PACKAGE_GROUP = "learningpods-model-group"
+AWS_REGION = "af-south-1"
+AWS_PROFILE = "SageMaker-Full-AI-Access-733246370304"
+
+
+def download_from_registry(model_dir="./models"):
+    """Download the latest model from SageMaker Model Registry.
+
+    Queries the model registry for the latest version, downloads model.tar.gz
+    from S3, and extracts it to model_dir.
+    """
+    os.makedirs(model_dir, exist_ok=True)
+
+    # Connect to SageMaker
+    session = boto3.Session(profile_name=AWS_PROFILE, region_name=AWS_REGION)
+    sm_client = session.client("sagemaker")
+    s3_client = session.client("s3")
+
+    # Get the latest approved model from the registry
+    print(f"Querying model registry: {MODEL_PACKAGE_GROUP}")
+    response = sm_client.list_model_packages(
+        ModelPackageGroupName=MODEL_PACKAGE_GROUP,
+        ModelApprovalStatus="Approved",
+        SortBy="CreationTime",
+        SortOrder="Descending",
+        MaxResults=1,
+    )
+
+    packages = response.get("ModelPackageSummaryList", [])
+    if not packages:
+        raise RuntimeError(f"No approved models found in {MODEL_PACKAGE_GROUP}")
+
+    model_package_arn = packages[0]["ModelPackageArn"]
+    version = packages[0].get("ModelPackageVersion", "?")
+    print(f"  Latest approved version: {version}")
+
+    # Get the S3 path to model.tar.gz
+    details = sm_client.describe_model_package(ModelPackageName=model_package_arn)
+    s3_uri = details["InferenceSpecification"]["Containers"][0]["ModelDataUrl"]
+    print(f"  Model artifact: {s3_uri}")
+
+    # Parse S3 URI (s3://bucket/key)
+    parts = s3_uri.replace("s3://", "").split("/", 1)
+    bucket, key = parts[0], parts[1]
+
+    # Download and extract model.tar.gz
+    tar_path = os.path.join(model_dir, "model.tar.gz")
+    print(f"  Downloading to {model_dir}/...")
+    s3_client.download_file(bucket, key, tar_path)
+
+    print(f"  Extracting model.tar.gz...")
+    with tarfile.open(tar_path, "r:gz") as tar:
+        tar.extractall(path=model_dir)
+
+    # Clean up the tar file
+    os.remove(tar_path)
+
+    print(f"  Done! Model files extracted to {model_dir}/")
+    return model_dir
+
 
 def load_model(model_dir=DEFAULT_MODEL_DIR):
-    """
-    Load the trained CatBoost model from a directory.
-
-    Args:
-        model_dir: Directory containing model.pkl
-
-    Returns:
-        Trained CatBoost model
-    """
+    """Load the trained CatBoost model from a directory."""
     model_path = os.path.join(model_dir, "model.pkl")
 
     if not os.path.exists(model_path):
@@ -48,15 +102,7 @@ def load_model(model_dir=DEFAULT_MODEL_DIR):
 
 
 def load_config(model_dir=DEFAULT_MODEL_DIR):
-    """
-    Load model config. Tries model directory first, falls back to training config.
-
-    Args:
-        model_dir: Directory containing config.json
-
-    Returns:
-        Configuration dictionary
-    """
+    """Load model config. Tries model dir first, falls back to training config.yaml."""
     # Try model directory first
     config_path = os.path.join(model_dir, "config.json")
     if os.path.exists(config_path):
@@ -72,15 +118,7 @@ def load_config(model_dir=DEFAULT_MODEL_DIR):
 
 
 def load_threshold(model_dir=DEFAULT_MODEL_DIR):
-    """
-    Load the optimal prediction threshold from training metrics.
-
-    Args:
-        model_dir: Directory containing metrics.json
-
-    Returns:
-        Threshold value (default: 0.5)
-    """
+    """Load the optimal prediction threshold from metrics.json (default: 0.5)."""
     metrics_path = os.path.join(model_dir, "metrics.json")
 
     if os.path.exists(metrics_path):

@@ -29,9 +29,17 @@ python train.py
 
 ### 2. Run as SageMaker Pipeline
 
+`pipeline.py` has two independent flags:
+
+- **`--create`** — uploads (or overwrites) the pipeline definition (DAG) to SageMaker. Only needed the first time, or after you change `pipeline.py`. If the pipeline already exists, it's safe to run — it does an upsert without affecting past runs or registered models.
+- **`--execute`** — starts a new pipeline run using the already-uploaded definition.
+
 ```bash
-# Create and execute the pipeline
+# First time (or after editing pipeline.py)
 python pipeline.py --create --execute
+
+# Subsequent runs — no need to re-upload the definition
+python pipeline.py --execute
 ```
 
 Monitor at: https://console.aws.amazon.com/sagemaker/home?region=af-south-1#/pipelines

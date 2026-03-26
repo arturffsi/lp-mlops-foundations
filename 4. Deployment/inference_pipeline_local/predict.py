@@ -1,14 +1,5 @@
 """
 Run churn predictions using a trained model.
-
-Usage:
-    from predict import predict, save_predictions
-
-    # Run predictions
-    scores = predict(model, X, cat_indices)
-
-    # Apply threshold and save
-    save_predictions(scores, threshold, output_file="predictions.csv")
 """
 
 import numpy as np
@@ -17,17 +8,7 @@ from catboost import Pool
 
 
 def predict(model, X, cat_indices):
-    """
-    Run model prediction.
-
-    Args:
-        model: Trained CatBoost model
-        X: Feature DataFrame
-        cat_indices: List of categorical column indices
-
-    Returns:
-        Array of churn probability scores (0-1)
-    """
+    """Run model prediction. Returns array of churn probability scores (0-1)."""
     print(f"Running predictions on {len(X):,} rows...")
 
     # Create CatBoost Pool with categorical features
@@ -41,17 +22,7 @@ def predict(model, X, cat_indices):
 
 
 def save_predictions(scores, threshold=0.5, output_file="predictions.csv"):
-    """
-    Save predictions to CSV file.
-
-    Args:
-        scores: Array of probability scores
-        threshold: Threshold for binary prediction
-        output_file: Output CSV path
-
-    Returns:
-        DataFrame with predictions
-    """
+    """Apply threshold and save predictions to CSV."""
     # Apply threshold
     predictions = (scores >= threshold).astype(int)
 
