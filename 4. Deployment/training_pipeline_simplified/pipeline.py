@@ -19,20 +19,20 @@ import argparse
 import os
 from datetime import datetime
 import sagemaker
-from sagemaker.pytorch import PyTorch
-from sagemaker.sklearn.processing import SKLearnProcessor
+from sagemaker.pytorch import PyTorch                          # Estimator that runs train.py inside a PyTorch container
+from sagemaker.sklearn.processing import SKLearnProcessor     # Lightweight processor for scikit-learn scripts (used for evaluation)
 from sagemaker.processing import ScriptProcessor, ProcessingInput, ProcessingOutput, NetworkConfig
-from sagemaker.workflow.pipeline import Pipeline
-from sagemaker.workflow.steps import TrainingStep, ProcessingStep
-from sagemaker.workflow.step_collections import RegisterModel
-from sagemaker.workflow.parameters import ParameterString, ParameterInteger, ParameterFloat
-from sagemaker.workflow.conditions import ConditionGreaterThanOrEqualTo
-from sagemaker.workflow.condition_step import ConditionStep
-from sagemaker.workflow.functions import JsonGet, Join
-from sagemaker.workflow.properties import PropertyFile
-from sagemaker.inputs import TrainingInput
-from sagemaker.model_metrics import MetricsSource, ModelMetrics
-from sagemaker import image_uris
+from sagemaker.workflow.pipeline import Pipeline              # The pipeline object that holds all steps together
+from sagemaker.workflow.steps import TrainingStep, ProcessingStep  # Wrappers that turn scripts into pipeline steps
+from sagemaker.workflow.step_collections import RegisterModel # Registers the model in the SageMaker Model Registry
+from sagemaker.workflow.parameters import ParameterString, ParameterInteger, ParameterFloat  # Pipeline parameters (overridable at runtime)
+from sagemaker.workflow.conditions import ConditionGreaterThanOrEqualTo  # Used to check if a metric passes a threshold
+from sagemaker.workflow.condition_step import ConditionStep   # A step that branches: if condition passes → register, else → skip
+from sagemaker.workflow.functions import JsonGet, Join        # JsonGet reads a value from a JSON file; Join builds S3 paths
+from sagemaker.workflow.properties import PropertyFile        # Tells SageMaker to read an output file so conditions can use its values
+from sagemaker.inputs import TrainingInput                    # Points the training step to the S3 data location
+from sagemaker.model_metrics import MetricsSource, ModelMetrics  # Attaches evaluation metrics to the registered model
+from sagemaker import image_uris                              # Looks up the right Docker image URI for a given framework/region
 
 
 def create_pipeline(
@@ -95,6 +95,10 @@ def create_pipeline(
     # =========================================================================
     # Pipeline Parameters
     # =========================================================================
+    # Parameters are like function arguments for the whole pipeline.
+    # They have default values baked in, but can be overridden at execution time
+    # without changing or re-uploading the pipeline definition.
+    # e.g. python pipeline.py --execute --n-estimators 1000 --learning-rate 0.05
 
     instance_type = ParameterString(
         name="TrainingInstanceType",
@@ -121,7 +125,8 @@ def create_pipeline(
         default_value=1.015
     )
 
-    # Quality gate thresholds
+    # Quality gate thresholds — the model will only be registered if ALL of these pass.
+    # These are also pipeline parameters, so you can lower/raise them at execution time.
     roc_auc_threshold = ParameterFloat(
         name="RocAucThreshold",
         default_value=0.7
@@ -173,14 +178,18 @@ def create_pipeline(
     )
 
     # VPC config - same as production pipeline (churn-training-pipeline-v2)
-    # Needed so the container can reach Redshift which is in a private VPC
+    # Redshift lives inside a private VPC (not exposed to the internet).
+    # Without this, the SageMaker container can't reach it.
+    # The subnet and security group IDs are the same ones used in production.
     vpc_config = NetworkConfig(
         security_group_ids=["sg-017fb44c1ff043deb"],
         subnets=["subnet-06cf22533465bffc6", "subnet-04a897538d1ac1390"],
         enable_network_isolation=False
     )
 
-    # Create processor for Redshift export
+    # A ScriptProcessor runs any Python script inside a Docker container on SageMaker.
+    # Here we reuse the PyTorch image (it already has the psycopg2/boto3 dependencies we need).
+    # Think of it as: "spin up a machine, run export_redshift.py, then shut it down."
     redshift_processor = ScriptProcessor(
         image_uri=pytorch_image,
         command=["python3"],
@@ -192,11 +201,14 @@ def create_pipeline(
         network_config=vpc_config
     )
 
-    # Redshift IAM role for UNLOAD (separate from SageMaker execution role)
+    # Redshift needs its own IAM role to write data to S3 (the UNLOAD command requires it).
+    # This is separate from the SageMaker execution role — Redshift uses it to auth with S3.
     redshift_iam_role = f"arn:aws:iam::{account_id}:role/RedshiftIAMAuthRole"
 
-    # Redshift export step (using UNLOAD with IAM)
-    # Uses modulo sampling (idconsumo % 333 = 0) which is much faster than RANDOM()
+    # Redshift export step: runs export_redshift.py inside the container.
+    # job_arguments are passed as CLI args to the script (like running it on the terminal).
+    # --modulo-divisor 333 means: only export rows where idconsumo % 333 = 0 (~0.3% of data),
+    # which is much faster than RANDOM() because Redshift can use the index.
     step_redshift_export = ProcessingStep(
         name="ExportFromRedshift",
         processor=redshift_processor,
@@ -229,7 +241,10 @@ def create_pipeline(
 
     print(f"🔧 Configuring Step 2: Model Training...")
 
-    # Create PyTorch estimator for training
+    # A PyTorch estimator tells SageMaker how to run train.py.
+    # SageMaker will: spin up an ml.m5.2xlarge, copy the source_dir code into it,
+    # install requirements.txt, and run train.py with the given hyperparameters.
+    # metric_definitions scrape stdout with regex so SageMaker can track metrics.
     pytorch_estimator = PyTorch(
         entry_point='train.py',
         source_dir='.',
@@ -256,7 +271,9 @@ def create_pipeline(
         ]
     )
 
-    # Training step (depends on Redshift export)
+    # TrainingStep wraps the estimator into a pipeline step.
+    # depends_on=[step_redshift_export] ensures this step only starts after the export finishes.
+    # The s3_data points to the same S3 path where export_redshift.py wrote the parquet files.
     step_train = TrainingStep(
         name="TrainChurnModel",
         estimator=pytorch_estimator,
@@ -277,7 +294,8 @@ def create_pipeline(
 
     print(f"🔧 Configuring Step 3: Model Evaluation...")
 
-    # Create processor for evaluation
+    # SKLearnProcessor is a lightweight processor pre-loaded with scikit-learn.
+    # We use it here just to run evaluate_model.py — it doesn't need a GPU or PyTorch.
     sklearn_processor = SKLearnProcessor(
         framework_version="1.0-1",
         instance_type="ml.m5.large",
@@ -287,7 +305,13 @@ def create_pipeline(
         base_job_name=f"{pipeline_name}-evaluation"
     )
 
-    # Evaluation step
+    # Evaluation step: runs evaluate_model.py.
+    # inputs: the model artifact (model.tar.gz) from the training step is downloaded
+    #         into /opt/ml/processing/model inside the container.
+    # outputs: evaluate_model.py writes evaluation.json to /opt/ml/processing/evaluation,
+    #          which SageMaker then uploads to S3. The next step reads it from there.
+    # step_train.properties.TrainingJobName is resolved at runtime — SageMaker fills in
+    # the actual job name when the pipeline executes.
     step_eval = ProcessingStep(
         name="EvaluateModel",
         processor=sklearn_processor,
@@ -319,7 +343,8 @@ def create_pipeline(
 
     print(f"🔧 Configuring Step 4: Conditional Registration...")
 
-    # Model metrics for registry
+    # Attach the evaluation.json to the registered model so it's visible in the Model Registry UI.
+    # Join() builds the S3 path: <evaluation output S3 URI>/evaluation.json
     model_metrics = ModelMetrics(
         model_statistics=MetricsSource(
             s3_uri=Join(
@@ -330,7 +355,9 @@ def create_pipeline(
         )
     )
 
-    # Property file for conditions
+    # PropertyFile tells SageMaker to read evaluation.json from the "evaluation" output.
+    # This is what makes it possible to use JsonGet() in conditions below —
+    # without this, the pipeline wouldn't know where to find the metric values.
     evaluation_report = PropertyFile(
         name="EvaluationReport",
         output_name="evaluation",
@@ -339,7 +366,10 @@ def create_pipeline(
 
     step_eval.property_files = [evaluation_report]
 
-    # Quality gate conditions (ALL must pass)
+    # Quality gate conditions: each one reads a metric from evaluation.json and
+    # compares it against the threshold parameter.
+    # JsonGet navigates the JSON like: evaluation.json → regression_metrics → roc_auc → value
+    # ALL conditions must be True for the model to be registered (AND logic).
     cond_roc_auc = ConditionGreaterThanOrEqualTo(
         left=JsonGet(
             step_name=step_eval.name,
@@ -376,7 +406,9 @@ def create_pipeline(
         right=recall_threshold
     )
 
-    # Model registration
+    # RegisterModel saves the model to the SageMaker Model Registry.
+    # approval_status="PendingManualApproval" means a human must approve it before
+    # it can be deployed. This is a safety gate before production.
     step_register = RegisterModel(
         name="RegisterChurnModel",
         estimator=pytorch_estimator,
@@ -390,7 +422,9 @@ def create_pipeline(
         model_metrics=model_metrics
     )
 
-    # Conditional step - only register if all quality gates pass
+    # ConditionStep is the branching logic of the pipeline:
+    # - if ALL conditions pass → run if_steps (register the model)
+    # - else → run else_steps (empty = do nothing, pipeline ends without registering)
     step_cond = ConditionStep(
         name="CheckModelQuality",
         conditions=[cond_roc_auc, cond_pr_auc, cond_f1, cond_recall],
@@ -505,6 +539,8 @@ def main():
     # Create/update pipeline
     if args.create:
         print(f"📤 Uploading pipeline definition to SageMaker...")
+        # upsert = create if it doesn't exist, update if it does.
+        # Safe to run multiple times — it won't delete past runs or registered models.
         pipeline.upsert(role_arn=role)
         print(f"✅ Pipeline '{args.pipeline_name}' created/updated!\n")
 
