@@ -48,6 +48,7 @@ features:
   id_features:
     - "idconsumo"
     - "codigocontaservico"
+    - "id_contaservico"
     - "idconta"
     - "iddim_cliente"
     - "idcliente"
@@ -66,7 +67,6 @@ features:
 
   # Integer features (excluding ID columns which are dropped above)
   int_features:
-    - "id_contaservico"
     - "n_dias_subscricao"
     - "n_dias_expirado"
 
