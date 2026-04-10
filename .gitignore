@@ -59,6 +59,7 @@ env/
 *.swo
 *~
 .DS_Store
+**/.DS_Store
 
 # MLOps artifacts
 #*.parquet
@@ -98,3 +99,6 @@ temp/
 #feature_schema.json
 #data_metadata.json
 #eda_report.html
+
+# Monitoring artifacts
+6. Monitoring/artifacts/
