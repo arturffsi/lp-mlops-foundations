@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+predictions.csv
+*.csv
+.env
+sample_data/
+models/
