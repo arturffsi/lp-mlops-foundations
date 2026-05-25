@@ -1,7 +1,7 @@
 {
-  "source": "local_parquet",
+  "source": "parquet",
   "user": "student",
-  "extraction_date": "2025-11-13T17:52:55.253922+00:00",
+  "extraction_date": "2026-05-21T15:05:21.828106+00:00",
   "n_rows": 103397,
   "n_columns": 58,
   "date_range": {
@@ -11,8 +11,8 @@
   "version": "v1.0",
   "feature_count": {
     "numeric": 46,
-    "categorical": 11,
-    "datetime": 1
+    "categorical": 9,
+    "datetime": 3
   },
   "target_distribution": {
     "class_0": 65469,

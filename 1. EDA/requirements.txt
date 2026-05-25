@@ -1,0 +1,30 @@
+# Module 1 — EDA dependencies (tested on Python 3.10+)
+#
+# Quick start:   pip install -r requirements.txt
+#
+# These pins are the result of a real environment debugging session — please
+# don't loosen them without testing the full notebook first.
+
+# --- Core ---
+pandas>=2.2,<3        # pandas 3.0 has a pyarrow hotfix bug that breaks read_parquet
+pyarrow>=14,<19       # pyarrow 19+ conflicts with pandas 2.x extension type registration
+numpy
+scipy                 # pointbiserialr + chi2_contingency in §5 (Bivariate)
+
+# --- Plotting ---
+plotly
+seaborn
+matplotlib
+
+# --- Jupyter ---
+nbformat>=4.2         # required by Plotly's fig.show() inside notebooks
+ipykernel
+
+# --- ydata-profiling (Section 8 — optional automated EDA report) ---
+setuptools<81         # setuptools 81 dropped pkg_resources, which ydata-profiling imports
+ydata-profiling
+
+# --- Redshift (optional — only needed if you set DATA_SOURCE = "redshift") ---
+boto3
+awswrangler
+s3fs

@@ -1,0 +1,26 @@
+# Module 2 — Training dependencies (tested on Python 3.10+)
+#
+# Quick start:   pip install -r requirements.txt
+#
+# These pins are validated against the EDA outputs from Module 1.
+
+# --- Inherits everything Module 1 needs (data plumbing) ---
+pandas>=2.2,<3        # pandas 3.0 has a pyarrow hotfix bug that breaks read_parquet
+pyarrow>=14,<19       # pyarrow 19+ conflicts with pandas 2.x extension type registration
+numpy
+scipy
+
+# --- Modeling ---
+scikit-learn          # metrics (roc_auc_score, precision_recall_curve, ...)
+catboost              # primary model in 2_model_selection
+xgboost               # comparison model in 2_model_selection
+optuna                # hyperparameter tuning in 3_experimentation_hyperparameter
+
+# --- Plotting ---
+matplotlib
+plotly
+seaborn
+
+# --- Jupyter ---
+nbformat>=4.2         # required by Plotly's fig.show() inside notebooks
+ipykernel
