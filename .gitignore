@@ -102,3 +102,5 @@ temp/
 
 # Monitoring artifacts
 6. Monitoring/artifacts/
+.DS_Store
+sample_data_from_redshift/sample_from_prod.parquet
