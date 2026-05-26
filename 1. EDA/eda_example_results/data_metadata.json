@@ -1,7 +1,7 @@
 {
   "source": "parquet",
   "user": "student",
-  "extraction_date": "2026-05-21T15:05:21.828106+00:00",
+  "extraction_date": "2026-05-25T20:04:15.463273+00:00",
   "n_rows": 103397,
   "n_columns": 58,
   "date_range": {
