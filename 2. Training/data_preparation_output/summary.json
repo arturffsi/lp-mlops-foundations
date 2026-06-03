@@ -2,7 +2,7 @@
   "train_rows": 82717,
   "val_rows": 10340,
   "test_rows": 10340,
-  "features": 58,
+  "features": 56,
   "train_churn_rate": 0.3764885090126576,
   "val_churn_rate": 0.3064796905222437,
   "test_churn_rate": 0.3498065764023211,

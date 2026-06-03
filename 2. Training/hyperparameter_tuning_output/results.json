@@ -1,21 +1,21 @@
 {
   "model": "CatBoost (Tuned)",
-  "threshold": 0.29762560562500323,
-  "roc_auc": 0.7719879415085629,
-  "pr_auc": 0.5853402949902311,
-  "precision": 0.4698906800074115,
+  "threshold": 0.29612405152434035,
+  "roc_auc": 0.7712962772683831,
+  "pr_auc": 0.5839502259830438,
+  "precision": 0.46506510177883736,
   "recall": 0.8002524455664247,
-  "f1": 0.5921083352790101,
+  "f1": 0.5882625840872188,
   "target_recall": 0.8,
   "hyperparameters": {
-    "iterations": 811,
-    "learning_rate": 0.04417002593608231,
-    "depth": 5,
-    "l2_leaf_reg": 1.0151624355573823
+    "iterations": 979,
+    "learning_rate": 0.03445639818969485,
+    "depth": 6,
+    "l2_leaf_reg": 1.1616568805333767
   },
   "baseline_comparison": {
-    "baseline_pr_auc": 0.5787877577509817,
-    "tuned_pr_auc": 0.5853402949902311,
-    "improvement": 0.006552537239249423
+    "baseline_pr_auc": 0.5787877577509818,
+    "tuned_pr_auc": 0.5839502259830438,
+    "improvement": 0.005162468232062012
   }
 }

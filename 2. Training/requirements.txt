@@ -11,10 +11,14 @@ numpy
 scipy
 
 # --- Modeling ---
-scikit-learn          # metrics (roc_auc_score, precision_recall_curve, ...)
-catboost              # primary model in 2_model_selection
-xgboost               # comparison model in 2_model_selection
-optuna                # hyperparameter tuning in 3_experimentation_hyperparameter
+scikit-learn>=1.3,<2  # metrics (roc_auc_score, precision_recall_curve, ...)
+catboost>=1.2,<2      # primary model in 2_model_selection
+xgboost>=2,<4         # comparison model in 2_model_selection. xgboost <2 doesn't
+                      # support early_stopping_rounds in the constructor; xgboost
+                      # >=3 enforces strict categorical matching between train/val
+                      # (the notebook handles this — share train's category set
+                      # with val before fitting).
+optuna>=3,<5          # hyperparameter tuning in 3_experimentation_hyperparameter
 
 # --- Plotting ---
 matplotlib
