@@ -84,7 +84,9 @@ def prepare_features(df, config):
     X = df.drop(columns=[target_col])
 
     # Drop datetime columns (CatBoost can't handle them directly)
-    date_cols = [c for c in X.columns if np.issubdtype(X[c].dtype, np.datetime64)]
+    # Use pandas' dtype check — np.issubdtype trips on pandas extension dtypes
+    # like StringDtype / ArrowDtype that aren't real numpy dtypes.
+    date_cols = [c for c in X.columns if pd.api.types.is_datetime64_any_dtype(X[c])]
     if date_cols:
         X = X.drop(columns=date_cols)
         print(f"   Dropped {len(date_cols)} datetime columns")
@@ -95,9 +97,12 @@ def prepare_features(df, config):
         config['features'].get('float_features', [])
     )
 
+    # Anything that isn't numeric (and isn't datetime — we dropped those above)
+    # is categorical for CatBoost. Use pd.api.types so we catch modern parquet
+    # extension dtypes (StringDtype, ArrowDtype) that aren't plain 'object'.
     cat_cols = [
         c for c in X.columns
-        if (X[c].dtype == 'object' or str(X[c].dtype) == 'category')
+        if not pd.api.types.is_numeric_dtype(X[c])
         and c not in numerical_features
     ]
 
